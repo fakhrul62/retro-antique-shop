@@ -1,5 +1,5 @@
 import "./globals.css";
-import { CommerceProvider, SiteHeader } from "../components/commerce";
+import { CommerceProvider, SiteFooter, SiteHeader } from "../components/commerce";
 
 export const metadata = {
   title: "Old Soul Mercantile — Objects With a Past",
@@ -13,6 +13,7 @@ export default function RootLayout({ children }) {
         <CommerceProvider>
           <SiteHeader />
           {children}
+          <SiteFooter />
         </CommerceProvider>
         <script
           dangerouslySetInnerHTML={{

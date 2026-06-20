@@ -180,6 +180,21 @@ export function SiteHeader() {
   );
 }
 
+export function SiteFooter() {
+  const [time, setTime] = useState(null);
+  useEffect(() => {
+    setTime(new Date());
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return <footer id="footer">
+    <div className="footer-top"><Link className="brand" href="/"><AnalogLogo time={time} /><strong>Old Soul<br />Mercantile</strong></Link><p>Good objects outlive us.<br />Choose accordingly.</p></div>
+    <div className="footer-links"><div><b>Shop</b><Link href="/shop">New arrivals</Link><Link href="/shop">Collections</Link><Link href="/cart">Cart</Link></div><div><b>Information</b><Link href="/#story">About</Link><Link href="/#journal">Journal</Link><Link href="/checkout">Shipping & checkout</Link></div><div><b>Account</b><Link href="/account">My account</Link><Link href="/sign-in">Sign in</Link><Link href="/sign-up">Create account</Link></div></div>
+    <div className="footer-word">OLD SOUL</div>
+    <div className="footer-bottom"><span>© 2026 Old Soul Mercantile</span><span>Hudson, New York</span><span>Objects with a past</span></div>
+  </footer>;
+}
+
 function SearchOverlay({ close }) {
   const [query, setQuery] = useState("");
   const input = useRef(null);

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AddToCartButton, AnalogLogo } from "../components/commerce";
+import { AddToCartButton } from "../components/commerce";
 import { products } from "../lib/products";
 
 const Arrow = () => <span aria-hidden="true">↗</span>;
@@ -12,17 +12,10 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [message, setMessage] = useState("");
   const [openJournal, setOpenJournal] = useState(null);
-  const [time, setTime] = useState(null);
   const filtered = useMemo(() => products.filter((product) =>
     (category === "All" || product.category === category) &&
     product.name.toLowerCase().includes(query.toLowerCase())
   ), [category, query]);
-
-  useEffect(() => {
-    setTime(new Date());
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   function subscribe(event) {
     event.preventDefault();
@@ -121,12 +114,6 @@ export default function Home() {
         <div className="form-message" role="status">{message}</div>
       </section>
 
-      <footer id="footer">
-        <div className="footer-top"><Link className="brand" href="/"><AnalogLogo time={time} /><strong>Old Soul<br />Mercantile</strong></Link><p>Good objects outlive us.<br />Choose accordingly.</p></div>
-        <div className="footer-links"><div><b>Shop</b><Link href="/shop">New arrivals</Link><Link href="/shop">Collections</Link><Link href="/cart">Cart</Link></div><div><b>Information</b><Link href="/#story">About</Link><Link href="/#journal">Journal</Link><Link href="/checkout">Shipping & checkout</Link></div><div><b>Account</b><Link href="/account">My account</Link><Link href="/sign-in">Sign in</Link><Link href="/sign-up">Create account</Link></div></div>
-        <div className="footer-word">OLD SOUL</div>
-        <div className="footer-bottom"><span>© 2026 Old Soul Mercantile</span><span>Hudson, New York</span><span>Objects with a past</span></div>
-      </footer>
     </main>
   );
 }
