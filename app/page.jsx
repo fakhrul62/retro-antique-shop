@@ -10,10 +10,18 @@ const products = [
 
 const Arrow = () => <span aria-hidden="true">↗</span>;
 
-const Logo = () => (
-  <span className="logo-orbit" aria-hidden="true">
-    <i className="logo-ring" />
-    <i className="logo-sweep" />
+const Logo = ({ time }) => (
+  <span className="logo-clock" aria-hidden="true">
+    <i className="clock-rim" />
+    <i className="clock-ticks">{Array.from({ length: 12 }, (_, index) => <i key={index} style={{ "--tick": `${index * 30}deg` }} />)}</i>
+    <i className="clock-number twelve">XII</i>
+    <i className="clock-number three">III</i>
+    <i className="clock-number six">VI</i>
+    <i className="clock-number nine">IX</i>
+    <i className="clock-hand hour" style={{ "--angle": `${time ? (time.getHours() % 12) * 30 + time.getMinutes() / 2 : 0}deg` }} />
+    <i className="clock-hand minute" style={{ "--angle": `${time ? time.getMinutes() * 6 + time.getSeconds() / 10 : 0}deg` }} />
+    <i className="clock-hand second" style={{ "--angle": `${time ? time.getSeconds() * 6 : 0}deg` }} />
+    <i className="clock-pin" />
     <b>OS</b>
   </span>
 );
@@ -26,6 +34,7 @@ export default function Home() {
   const [menu, setMenu] = useState(false);
   const [message, setMessage] = useState("");
   const [openJournal, setOpenJournal] = useState(null);
+  const [time, setTime] = useState(null);
   const cursor = useRef(null);
 
   const filtered = useMemo(() => products.filter((product) =>
@@ -39,6 +48,12 @@ export default function Home() {
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
   }, [menu]);
+
+  useEffect(() => {
+    setTime(new Date());
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
@@ -72,7 +87,7 @@ export default function Home() {
       <div className="retro-cursor" ref={cursor}><span /></div>
       <div className="announcement">Complimentary insured shipping on orders over $750 <span>•</span> Worldwide delivery</div>
       <header className="header">
-        <a className="brand" href="#top" aria-label="Old Soul Mercantile home" data-cursor="HOME"><Logo /><strong>Old Soul<br />Mercantile</strong></a>
+        <a className="brand" href="#top" aria-label="Old Soul Mercantile home" data-cursor="HOME"><Logo time={time} /><strong>Old Soul<br />Mercantile</strong></a>
         <nav className={menu ? "nav open" : "nav"} aria-label="Main navigation">
           <a href="#new" onClick={() => setMenu(false)}>New Arrivals</a>
           <a href="#collections" onClick={() => setMenu(false)}>Collections</a>
@@ -177,7 +192,7 @@ export default function Home() {
       </section>
 
       <footer id="footer">
-        <div className="footer-top"><a className="brand" href="#top"><Logo /><strong>Old Soul<br />Mercantile</strong></a><p>Good objects outlive us.<br />Choose accordingly.</p></div>
+        <div className="footer-top"><a className="brand" href="#top"><Logo time={time} /><strong>Old Soul<br />Mercantile</strong></a><p>Good objects outlive us.<br />Choose accordingly.</p></div>
         <div className="footer-links"><div><b>Shop</b><a href="#new">New arrivals</a><a href="#collections">Collections</a><a href="#new">Gift cards</a></div><div><b>Information</b><a href="#story">About</a><a href="#journal">Journal</a><a href="#top">Shipping & returns</a></div><div><b>Visit</b><p>18 Warren Street<br />Hudson, NY 12534<br />Thu–Sun, 11–5</p></div></div>
         <div className="footer-word">OLD SOUL</div>
         <div className="footer-bottom"><span>© 2026 Old Soul Mercantile</span><span>Instagram · Pinterest</span><span>Objects with a past</span></div>
