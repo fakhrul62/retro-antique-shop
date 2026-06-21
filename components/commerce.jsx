@@ -4,7 +4,7 @@ import Link from "next/link";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { products } from "../lib/products";
-import { seedNotifications, seedOrders, seedReviews } from "../lib/dashboard-data";
+import { seedNotifications, seedOrders, seedReviews, seedUsers } from "../lib/dashboard-data";
 
 const CommerceContext = createContext(null);
 
@@ -27,7 +27,7 @@ export function CommerceProvider({ children }) {
       try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
     };
     setCart(read("old-soul-cart", []));
-    setUsers(read("old-soul-users", []));
+    setUsers(read("old-soul-users", seedUsers));
     setOrders(read("old-soul-orders", seedOrders));
     setCatalog(read("old-soul-catalog", products));
     setNotifications(read("old-soul-notifications", seedNotifications));
@@ -83,6 +83,12 @@ export function CommerceProvider({ children }) {
     return { user };
   }
 
+  function updateProfile(patch) {
+    if (!session) return;
+    setUsers((current) => current.map((user) => user.id === session.id ? { ...user, ...patch } : user));
+    setSession((current) => ({ ...current, name: patch.name || current.name, email: patch.email || current.email }));
+  }
+
   function placeOrder(customer, payment) {
     const order = {
       id: `OS-${Date.now().toString().slice(-7)}`,
@@ -112,7 +118,7 @@ export function CommerceProvider({ children }) {
   }
 
   return (
-    <CommerceContext.Provider value={{ items, count, subtotal, cart, addToCart, updateQuantity, removeFromCart: (id) => setCart((current) => current.filter((item) => item.id !== id)), miniCart, setMiniCart, searchOpen, setSearchOpen, added, users, orders, catalog, notifications, reviews, session, signUp, signIn, signOut: () => setSession(null), placeOrder, saveProduct, updateOrder, deleteProduct: (id) => setCatalog((current) => current.filter((item) => item.id !== id)), markNotification: (id) => setNotifications((current) => current.map((item) => item.id === id ? { ...item, read: true } : item)), updateReview: (id, status) => setReviews((current) => current.map((item) => item.id === id ? { ...item, status } : item)) }}>
+    <CommerceContext.Provider value={{ items, count, subtotal, cart, addToCart, updateQuantity, removeFromCart: (id) => setCart((current) => current.filter((item) => item.id !== id)), miniCart, setMiniCart, searchOpen, setSearchOpen, added, users, orders, catalog, notifications, reviews, session, signUp, signIn, signOut: () => setSession(null), updateProfile, placeOrder, saveProduct, updateOrder, deleteProduct: (id) => setCatalog((current) => current.filter((item) => item.id !== id)), markNotification: (id) => setNotifications((current) => current.map((item) => item.id === id ? { ...item, read: true } : item)), updateReview: (id, status) => setReviews((current) => current.map((item) => item.id === id ? { ...item, status } : item)) }}>
       <GlobalEffects />
       {children}
     </CommerceContext.Provider>

@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AddToCartButton } from "../components/commerce";
-import { products } from "../lib/products";
+import { AddToCartButton, useCommerce } from "../components/commerce";
 
 const Arrow = () => <span aria-hidden="true">↗</span>;
 
 export default function Home() {
+  const { catalog: products } = useCommerce();
   const [category, setCategory] = useState("All");
   const [query, setQuery] = useState("");
   const [message, setMessage] = useState("");

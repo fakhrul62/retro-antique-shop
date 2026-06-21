@@ -7,14 +7,15 @@ import { AddToCartButton, PageShell, useCommerce } from "./commerce";
 import { products } from "../lib/products";
 
 export function ShopPage() {
+  const { catalog } = useCommerce();
   const [category, setCategory] = useState("All");
   const [sort, setSort] = useState("featured");
-  const shown = [...products]
+  const shown = [...catalog]
     .filter((product) => category === "All" || product.category === category)
     .sort((a, b) => sort === "low" ? a.price - b.price : sort === "high" ? b.price - a.price : 0);
   return <PageShell eyebrow="The complete archive" title="Shop antiques" intro="Every object is one of one, documented honestly, and packed by hand." className="shop-page">
     <div className="shop-toolbar">
-      <div className="filters">{["All", ...new Set(products.map((product) => product.category))].map((item) => <button className={category === item ? "active" : ""} onClick={() => setCategory(item)} key={item}>{item}</button>)}</div>
+      <div className="filters">{["All", ...new Set(catalog.map((product) => product.category))].map((item) => <button className={category === item ? "active" : ""} onClick={() => setCategory(item)} key={item}>{item}</button>)}</div>
       <label>Sort <select value={sort} onChange={(event) => setSort(event.target.value)}><option value="featured">Featured</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select></label>
     </div>
     <div className="product-grid commerce-grid">{shown.map((product, index) => <article className="product" key={product.id}>
@@ -24,7 +25,14 @@ export function ShopPage() {
   </PageShell>;
 }
 
-export function ProductDetail({ product }) {
+export function CatalogProduct({ slug }) {
+  const { catalog } = useCommerce();
+  const product = catalog.find((item) => item.slug === slug);
+  if (!product) return <PageShell eyebrow="Collection archive" title="Object not found" intro="This record may have been removed from the collection."><Link href="/shop">Return to the collection →</Link></PageShell>;
+  return <ProductDetail product={product} related={catalog} />;
+}
+
+export function ProductDetail({ product, related = products }) {
   const [quantity, setQuantity] = useState(1);
   return <main className="product-page">
     <div className="product-gallery"><div className="product-gallery-main"><img src={product.image} alt={product.name} /><span>Archive piece</span></div></div>
@@ -36,7 +44,7 @@ export function ProductDetail({ product }) {
       <AddToCartButton product={product} quantity={quantity} className="product-add" />
       <div className="service-notes"><div><b>Authenticity</b><p>Research notes and condition report included.</p></div><div><b>Delivery</b><p>Insured shipping, free above $750.</p></div><div><b>Returns</b><p>14-day inspection period after delivery.</p></div></div>
     </div>
-    <section className="related"><p className="eyebrow">You may also consider</p><h2>More from the archive</h2><div className="related-grid">{products.filter((item) => item.id !== product.id).map((item) => <Link href={`/product/${item.slug}`} key={item.id}><img src={item.image} alt={item.name} /><b>{item.name}</b><span>${item.price.toLocaleString()}</span></Link>)}</div></section>
+    <section className="related"><p className="eyebrow">You may also consider</p><h2>More from the archive</h2><div className="related-grid">{related.filter((item) => item.id !== product.id).slice(0, 4).map((item) => <Link href={`/product/${item.slug}`} key={item.id}><img src={item.image} alt={item.name} /><b>{item.name}</b><span>${item.price.toLocaleString()}</span></Link>)}</div></section>
   </main>;
 }
 
