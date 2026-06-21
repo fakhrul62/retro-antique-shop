@@ -82,31 +82,38 @@ function SectionHead({ eyebrow, title, copy, action }) {
 }
 
 function Overview({ catalog, orders, notifications, go, setSelectedOrder }) {
+  const [range, setRange] = useState("12m");
   const paid = orders.filter((order) => order.payment?.status === "Paid");
   const revenue = paid.reduce((sum, order) => sum + order.total, 0);
   const inventoryValue = catalog.reduce((sum, item) => sum + item.cost * item.stock, 0);
   const profit = paid.reduce((sum, order) => sum + order.items.reduce((line, item) => line + (item.price - (catalog.find((p) => p.id === item.id)?.cost || 0)) * item.quantity, 0), 0);
-  const bars = [38, 55, 43, 67, 59, 82, 74, 95, 70, 88, 76, 100];
+  const charts = {
+    "7d": { bars: [42, 68, 51, 83, 65, 94, 77], labels: ["M","T","W","T","F","S","S"] },
+    "30d": { bars: [36, 58, 49, 72, 61, 88, 79, 96], labels: ["1","5","9","13","17","21","25","30"] },
+    "12m": { bars: [38, 55, 43, 67, 59, 82, 74, 95, 70, 88, 76, 100], labels: ["J","F","M","A","M","J","J","A","S","O","N","D"] },
+  };
+  const chart = charts[range];
   return <>
     <SectionHead eyebrow="Sunday, June 21" title="Good evening, Fakhrul." copy="Here is what is happening across the collection today." action={<button className="primary-admin" onClick={() => go("inventory")}>+ Add antique</button>} />
     <div className="metric-grid">
-      <Metric label="Gross sales" value={money(revenue)} change="+18.2%" note="vs previous period" />
-      <Metric label="Net profit" value={money(profit)} change="+12.4%" note={`${revenue ? Math.round(profit / revenue * 100) : 0}% margin`} />
-      <Metric label="Orders" value={orders.length} change="+3 today" note={`${orders.filter((o) => o.status !== "Delivered").length} need action`} />
-      <Metric label="Inventory at cost" value={money(inventoryValue)} change={`${catalog.reduce((s, p) => s + p.stock, 0)} pieces`} note={`${catalog.filter((p) => p.stock <= 1).length} low or sold`} />
+      <Metric label="Gross sales" value={money(revenue)} change="+18.2%" note="Open payments" onClick={() => go("payments")} />
+      <Metric label="Net profit" value={money(profit)} change="+12.4%" note={`${revenue ? Math.round(profit / revenue * 100) : 0}% margin`} onClick={() => go("payments")} />
+      <Metric label="Orders" value={orders.length} change="+3 today" note={`${orders.filter((o) => o.status !== "Delivered").length} need action`} onClick={() => go("orders")} />
+      <Metric label="Inventory at cost" value={money(inventoryValue)} change={`${catalog.reduce((s, p) => s + p.stock, 0)} pieces`} note={`${catalog.filter((p) => p.stock <= 1).length} low or sold`} onClick={() => go("inventory")} />
     </div>
     <div className="overview-grid">
-      <section className="dash-card sales-card"><CardTitle title="Sales performance" meta="Last 12 months" /><div className="sales-total"><b>{money(revenue)}</b><span>Paid revenue</span></div><div className="bar-chart">{bars.map((height, index) => <div key={index}><i style={{ height: `${height}%` }} /><small>{["J","F","M","A","M","J","J","A","S","O","N","D"][index]}</small></div>)}</div></section>
+      <section className="dash-card sales-card"><header className="card-title"><h2>Sales performance</h2><div className="range-switch">{[["7d","7 days"],["30d","30 days"],["12m","12 months"]].map(([id,label]) => <button className={range === id ? "active" : ""} onClick={() => setRange(id)} key={id}>{label}</button>)}</div></header><div className="sales-total"><b>{money(revenue)}</b><span>Paid revenue</span></div><div className="bar-chart">{chart.bars.map((height, index) => <button title={`${chart.labels[index]}: ${height}% of peak`} key={index}><i style={{ height: `${height}%` }} /><small>{chart.labels[index]}</small></button>)}</div></section>
       <section className="dash-card"><CardTitle title="Inventory health" action="Manage" onClick={() => go("inventory")} /><div className="health-ring"><div><b>{catalog.filter((p) => p.stock > 1).length}</b><span>healthy listings</span></div></div><div className="health-legend"><span><i className="healthy" />In stock <b>{catalog.filter((p) => p.stock > 1).length}</b></span><span><i className="low" />Low stock <b>{catalog.filter((p) => p.stock === 1).length}</b></span><span><i className="sold" />Sold out <b>{catalog.filter((p) => p.stock === 0).length}</b></span></div></section>
     </div>
     <div className="overview-grid lower">
       <section className="dash-card"><CardTitle title="Recent orders" action="View all" onClick={() => go("orders")} /><div className="compact-list">{orders.slice(0, 4).map((order) => <button key={order.id} onClick={() => { go("orders"); setSelectedOrder(order.id); }}><span className="order-avatar">{order.customer.name.split(" ").map((n) => n[0]).join("")}</span><span><b>{order.customer.name}</b><small>{order.id} · {fmtDate(order.date)}</small></span><Status value={order.status} /><strong>{money(order.total)}</strong></button>)}</div></section>
       <section className="dash-card"><CardTitle title="Attention needed" action="All alerts" onClick={() => go("notifications")} /><div className="notice-list">{notifications.filter((n) => !n.read).slice(0, 4).map((item) => <div key={item.id}><i>{item.type === "inventory" ? "!" : item.type === "payment" ? "$" : "↗"}</i><span><b>{item.title}</b><small>{item.detail}</small></span><time>{item.time}</time></div>)}</div></section>
     </div>
+    <section className="quick-operations"><button onClick={() => go("orders")}><i>01</i><span><b>Process orders</b><small>Pack, collect payment, and update status</small></span><em>→</em></button><button onClick={() => go("delivery")}><i>02</i><span><b>Manage delivery</b><small>Create labels and add tracking events</small></span><em>→</em></button><button onClick={() => go("inventory")}><i>03</i><span><b>Update inventory</b><small>Change stock, listing, and sale price</small></span><em>→</em></button><button onClick={() => go("coupons")}><i>04</i><span><b>Create promotion</b><small>Build and monitor coupon rules</small></span><em>→</em></button></section>
   </>;
 }
 
-function Metric({ label, value, change, note }) { return <article className="metric"><span>{label}</span><b>{value}</b><div><em>{change}</em><small>{note}</small></div></article>; }
+function Metric({ label, value, change, note, onClick }) { return <button className={`metric ${onClick ? "interactive" : ""}`} onClick={onClick}><span>{label}</span><b>{value}</b><div><em>{change}</em><small>{note}</small>{onClick && <i>→</i>}</div></button>; }
 function CardTitle({ title, meta, action, onClick }) { return <header className="card-title"><h2>{title}</h2>{meta && <span>{meta}</span>}{action && <button onClick={onClick}>{action} →</button>}</header>; }
 function Status({ value }) { return <span className={`dash-status ${String(value).toLowerCase().replaceAll(" ", "-")}`}>{value}</span>; }
 
