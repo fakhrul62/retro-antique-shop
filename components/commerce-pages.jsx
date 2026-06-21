@@ -50,12 +50,12 @@ export function ProductDetail({ product, related = products }) {
 }
 
 export function CartPage() {
-  const { items, subtotal, updateQuantity, removeFromCart } = useCommerce();
+  const { items, subtotal, discount, appliedCoupon, applyCoupon, removeCoupon, updateQuantity, removeFromCart } = useCommerce();
   const shipping = subtotal >= 750 ? 0 : 45;
   return <PageShell eyebrow="Your selections" title="Shopping cart" intro={`${items.length} ${items.length === 1 ? "object" : "objects"} reserved in this browser.`} className="cart-page">
     {items.length ? <div className="cart-layout">
       <div className="cart-lines">{items.map((item) => <article key={item.id}><Link href={`/product/${item.slug}`}><img src={item.image} alt={item.name} /></Link><div><p>{item.era}</p><h2><Link href={`/product/${item.slug}`}>{item.name}</Link></h2><span>${item.price.toLocaleString()}</span><div className="cart-quantity"><span>Quantity</span><QuantityStepper value={item.quantity} onChange={(quantity) => updateQuantity(item.id, quantity)} /></div><button className="remove-item" onClick={() => removeFromCart(item.id)}>Remove</button></div></article>)}</div>
-      <OrderSummary subtotal={subtotal} shipping={shipping} action={<Link href="/checkout">Proceed to checkout →</Link>} />
+      <aside><CouponBox applied={appliedCoupon} apply={applyCoupon} remove={removeCoupon} /><OrderSummary subtotal={subtotal} discount={discount} shipping={shipping} action={<Link href="/checkout">Proceed to checkout →</Link>} /></aside>
     </div> : <EmptyCart />}
   </PageShell>;
 }
@@ -72,12 +72,22 @@ function EmptyCart() {
   return <div className="empty-cart"><span>00</span><h2>Your cabinet is empty.</h2><p>Objects are held only after checkout is completed.</p><Link href="/shop">Browse the collection →</Link></div>;
 }
 
-function OrderSummary({ subtotal, shipping, action }) {
-  return <aside className="order-summary"><p className="eyebrow">Order summary</p><div><span>Subtotal</span><b>${subtotal.toLocaleString()}</b></div><div><span>Insured shipping</span><b>{shipping ? `$${shipping}` : "Complimentary"}</b></div><div className="summary-total"><span>Total</span><b>${(subtotal + shipping).toLocaleString()}</b></div>{action}<small>Taxes, if applicable, are confirmed before dispatch.</small></aside>;
+function CouponBox({ applied, apply, remove }) {
+  const [code, setCode] = useState("");
+  const [message, setMessage] = useState("");
+  function submit() {
+    const result = apply(code);
+    setMessage(result.error || `${result.coupon.code} applied.`);
+  }
+  return <div className="coupon-box"><p className="eyebrow">Coupon</p>{applied ? <div className="applied-coupon"><span><b>{applied.code}</b><small>{applied.type === "percent" ? `${applied.value}% off` : `$${applied.value} off`}</small></span><button type="button" onClick={remove}>Remove</button></div> : <div className="coupon-entry"><input value={code} onChange={(event) => setCode(event.target.value)} placeholder="Coupon code" /><button type="button" onClick={submit}>Apply</button></div>}{message && <small>{message}</small>}</div>;
+}
+
+function OrderSummary({ subtotal, discount = 0, shipping, action }) {
+  return <aside className="order-summary"><p className="eyebrow">Order summary</p><div><span>Subtotal</span><b>${subtotal.toLocaleString()}</b></div>{discount > 0 && <div className="discount-line"><span>Coupon discount</span><b>−${discount.toLocaleString()}</b></div>}<div><span>Insured shipping</span><b>{shipping ? `$${shipping}` : "Complimentary"}</b></div><div className="summary-total"><span>Total</span><b>${(subtotal - discount + shipping).toLocaleString()}</b></div>{action}<small>Taxes, if applicable, are confirmed before dispatch.</small></aside>;
 }
 
 export function CheckoutPage() {
-  const { items, subtotal, session, signUp, placeOrder } = useCommerce();
+  const { items, subtotal, discount, appliedCoupon, applyCoupon, removeCoupon, session, signUp, placeOrder } = useCommerce();
   const [createAccount, setCreateAccount] = useState(!session);
   const [error, setError] = useState("");
   const router = useRouter();
@@ -106,9 +116,10 @@ export function CheckoutPage() {
         {!session && <fieldset><legend>03 / Account</legend><label className="check-row"><input type="checkbox" checked={createAccount} onChange={(event) => setCreateAccount(event.target.checked)} /> Create an account to track this order</label>{createAccount && <label>Password<input name="password" type="password" required minLength="6" autoComplete="new-password" /></label>}</fieldset>}
         <fieldset><legend>{session ? "03" : "04"} / Payment</legend><div className="payment-placeholder"><span>Pay on confirmation</span><p>The store will contact you with a secure payment request after condition and delivery details are reconfirmed.</p></div></fieldset>
         {error && <p className="form-error" role="alert">{error}</p>}
-        <button className="place-order">Place order · ${(subtotal + shipping).toLocaleString()}</button>
+        <CouponBox applied={appliedCoupon} apply={applyCoupon} remove={removeCoupon} />
+        <button className="place-order">Place order · ${(subtotal - discount + shipping).toLocaleString()}</button>
       </div>
-      <OrderSummary subtotal={subtotal} shipping={shipping} action={null} />
+      <OrderSummary subtotal={subtotal} discount={discount} shipping={shipping} action={null} />
     </form>
   </PageShell>;
 }
