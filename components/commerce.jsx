@@ -26,13 +26,20 @@ export function CommerceProvider({ children }) {
     const read = (key, fallback) => {
       try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
     };
+    const storedUsers = read("old-soul-users", []);
+    const mergedUsers = [
+      ...seedUsers,
+      ...storedUsers.filter((stored) => !seedUsers.some((seed) => seed.email.toLowerCase() === stored.email.toLowerCase())),
+    ].map((user) => ({ ...user, role: user.role || "customer" }));
+    const storedSession = read("old-soul-session", null);
+    const sessionUser = storedSession && mergedUsers.find((user) => user.id === storedSession.id || user.email.toLowerCase() === storedSession.email?.toLowerCase());
     setCart(read("old-soul-cart", []));
-    setUsers(read("old-soul-users", seedUsers));
+    setUsers(mergedUsers);
     setOrders(read("old-soul-orders", seedOrders));
     setCatalog(read("old-soul-catalog", products));
     setNotifications(read("old-soul-notifications", seedNotifications));
     setReviews(read("old-soul-reviews", seedReviews));
-    setSession(read("old-soul-session", null));
+    setSession(sessionUser ? { id: sessionUser.id, name: sessionUser.name, email: sessionUser.email, role: sessionUser.role } : null);
     setReady(true);
   }, []);
 
@@ -70,16 +77,16 @@ export function CommerceProvider({ children }) {
 
   function signUp({ name, email, password }) {
     if (users.some((user) => user.email.toLowerCase() === email.toLowerCase())) return { error: "An account already exists for this email." };
-    const user = { id: crypto.randomUUID(), name, email, password };
+    const user = { id: crypto.randomUUID(), name, email, password, role: "customer", joined: new Date().toISOString() };
     setUsers((current) => [...current, user]);
-    setSession({ id: user.id, name, email });
+    setSession({ id: user.id, name, email, role: user.role });
     return { user };
   }
 
   function signIn(email, password) {
     const user = users.find((item) => item.email.toLowerCase() === email.toLowerCase() && item.password === password);
     if (!user) return { error: "The email or password is incorrect." };
-    setSession({ id: user.id, name: user.name, email: user.email });
+    setSession({ id: user.id, name: user.name, email: user.email, role: user.role || "customer" });
     return { user };
   }
 
