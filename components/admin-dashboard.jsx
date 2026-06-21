@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useCommerce } from "./commerce";
 
 const money = (value) => `$${Number(value || 0).toLocaleString()}`;
@@ -15,6 +16,7 @@ const nav = [
 
 export function AdminDashboard() {
   const store = useCommerce();
+  const router = useRouter();
   const [section, setSection] = useState("overview");
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -23,6 +25,12 @@ export function AdminDashboard() {
   const [category, setCategory] = useState("All");
   const [toast, setToast] = useState("");
   const unread = store.notifications.filter((item) => !item.read).length;
+
+  useEffect(() => {
+    if (store.ready && store.session?.role !== "admin") router.replace("/sign-in");
+  }, [store.ready, store.session, router]);
+
+  if (!store.ready || store.session?.role !== "admin") return <main className="role-gate"><span>OS</span><h1>Administrator access</h1><p>{store.ready ? "Sign in with the administrator account to continue." : "Checking your session…"}</p><Link href="/sign-in">Go to sign in →</Link></main>;
 
   function flash(message) {
     setToast(message);

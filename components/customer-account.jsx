@@ -1,15 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { PageShell, useCommerce } from "./commerce";
 
 export function CustomerAccount() {
-  const { session, users, orders, signOut, updateProfile } = useCommerce();
+  const { ready, session, users, orders, signOut, updateProfile } = useCommerce();
+  const router = useRouter();
   const [tab, setTab] = useState("overview");
   const [selected, setSelected] = useState(null);
   const [saved, setSaved] = useState("");
+  useEffect(() => {
+    if (ready && session?.role === "admin") router.replace("/admin");
+  }, [ready, session, router]);
+  if (!ready) return <PageShell eyebrow="Private client ledger" title="Checking account…" />;
   if (!session) return <PageShell eyebrow="Private client ledger" title="My account" intro="Sign in to view your orders, payments, and delivery details."><div className="account-gate"><Link href="/sign-in">Sign in</Link><Link href="/sign-up">Create account</Link></div><p className="account-demo">Demo account: <b>eleanor@example.com</b> / <b>collector</b></p></PageShell>;
+  if (session.role === "admin") return <PageShell eyebrow="Administrator session" title="Opening dashboard…" />;
 
   const ownOrders = orders.filter((order) => order.customer.email.toLowerCase() === session.email.toLowerCase());
   const profile = users.find((user) => user.id === session.id) || session;

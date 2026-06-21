@@ -125,7 +125,7 @@ export function CommerceProvider({ children }) {
   }
 
   return (
-    <CommerceContext.Provider value={{ items, count, subtotal, cart, addToCart, updateQuantity, removeFromCart: (id) => setCart((current) => current.filter((item) => item.id !== id)), miniCart, setMiniCart, searchOpen, setSearchOpen, added, users, orders, catalog, notifications, reviews, session, signUp, signIn, signOut: () => setSession(null), updateProfile, placeOrder, saveProduct, updateOrder, deleteProduct: (id) => setCatalog((current) => current.filter((item) => item.id !== id)), markNotification: (id) => setNotifications((current) => current.map((item) => item.id === id ? { ...item, read: true } : item)), updateReview: (id, status) => setReviews((current) => current.map((item) => item.id === id ? { ...item, status } : item)) }}>
+    <CommerceContext.Provider value={{ ready, items, count, subtotal, cart, addToCart, updateQuantity, removeFromCart: (id) => setCart((current) => current.filter((item) => item.id !== id)), miniCart, setMiniCart, searchOpen, setSearchOpen, added, users, orders, catalog, notifications, reviews, session, signUp, signIn, signOut: () => setSession(null), updateProfile, placeOrder, saveProduct, updateOrder, deleteProduct: (id) => setCatalog((current) => current.filter((item) => item.id !== id)), markNotification: (id) => setNotifications((current) => current.map((item) => item.id === id ? { ...item, read: true } : item)), updateReview: (id, status) => setReviews((current) => current.map((item) => item.id === id ? { ...item, status } : item)) }}>
       <GlobalEffects />
       {children}
     </CommerceContext.Provider>

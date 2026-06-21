@@ -480,6 +480,11 @@ body:has(.admin-app) > .announcement,
 body:has(.admin-app) > .header,
 body:has(.admin-app) > footer { display: none; }
 body:has(.admin-app) { background: #eee9df; }
+.role-gate { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 30px; text-align: center; }
+.role-gate > span { width: 62px; height: 62px; display: grid; place-items: center; border: 2px solid; border-radius: 50%; font: 700 13px var(--mono); }
+.role-gate h1 { margin: 8px 0 0; font: 700 clamp(34px,6vw,70px)/.9 var(--display); text-transform: uppercase; }
+.role-gate p { margin: 0; }
+.role-gate a { margin-top: 10px; padding-bottom: 5px; border-bottom: 2px solid; font: 600 9px var(--mono); text-transform: uppercase; }
 .admin-app { --admin-ink:#24211d; --admin-muted:#777067; --admin-line:#d8d0c2; --admin-paper:#f8f5ee; --admin-accent:#c9532f; min-height:100vh; display:grid; grid-template-columns:248px minmax(0,1fr); color:var(--admin-ink); background:#eee9df; font-family:var(--sans); }
 .admin-sidebar { position:sticky; top:0; height:100vh; display:flex; flex-direction:column; padding:28px 18px 18px; color:#f6f0e4; background:#24211d; }
 .admin-brand { display:flex; align-items:center; gap:12px; padding:0 10px 32px; border-bottom:1px solid #48433d; }
