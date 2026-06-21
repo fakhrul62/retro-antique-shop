@@ -39,6 +39,14 @@ export function CommerceProvider({ children }) {
     setUsers(mergedUsers);
     setOrders(read("old-soul-orders", seedOrders).map((order) => ({
       ...order,
+      tracking: {
+        carrier: "Unassigned", service: "", number: "—", eta: "—", step: 1,
+        labelStatus: "Not created", packageCount: 1, weight: "", signatureRequired: true,
+        insuredValue: order.total, dispatchedAt: "", deliveredAt: "", notes: "", exception: "",
+        events: [{ id: `event-${order.id}-confirmed`, status: "Order confirmed", location: "Old Soul Mercantile", note: "Order entered the fulfilment queue.", date: order.date }],
+        ...order.tracking,
+        events: order.tracking?.events || [{ id: `event-${order.id}-confirmed`, status: order.status, location: "Old Soul Mercantile", note: `Order status: ${order.status}.`, date: order.date }],
+      },
       fulfillment: {
         conditionVerified: ["Packed", "In transit", "Delivered"].includes(order.status),
         accessoriesChecked: ["Packed", "In transit", "Delivered"].includes(order.status),

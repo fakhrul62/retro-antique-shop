@@ -181,6 +181,7 @@ function OrderRecord({ order, update, back, flash }) {
   function setStage(status) {
     if (status === "Packed" && !packingComplete) return flash("Complete every packing check first");
     if (status === "In transit" && order.status !== "Packed") return flash("Mark the order packed first");
+    if (status === "In transit" && (!order.tracking?.number || order.tracking.number === "—")) return flash("Add a tracking number in Delivery first");
     if (status === "Delivered" && order.status !== "In transit") return flash("Order must be in transit first");
     update(order.id, { status, tracking: { step: steps.indexOf(status) + 1 }, fulfillment: status === "Packed" ? { packedAt: new Date().toISOString(), packedBy: order.fulfillment?.packedBy || "Fakhrul M." } : {} });
     flash(`${order.id} marked ${status}`);
@@ -205,7 +206,43 @@ function Payments({ orders, update, flash }) {
 }
 
 function Delivery({ orders, update, flash }) {
-  return <><SectionHead eyebrow="Insured fulfilment" title="Delivery & tracking" copy="Assign carriers, record tracking numbers, and move orders through delivery." /><div className="delivery-board">{["Packed","In transit","Delivered"].map((column) => <section key={column}><header><h2>{column}</h2><span>{orders.filter((o) => o.status === column).length}</span></header>{orders.filter((o) => o.status === column).map((order) => <article key={order.id}><div><b>{order.id}</b><Status value={order.status} /></div><h3>{order.customer.name}</h3><p>{order.items.map((i) => i.name).join(", ")}</p><small>{order.tracking?.carrier} · {order.tracking?.number}</small>{column !== "Delivered" && <button onClick={() => { const next = column === "Packed" ? "In transit" : "Delivered"; update(order.id, { status: next, tracking: { step: next === "Delivered" ? 4 : 3 } }); flash(`${order.id} moved to ${next}`); }}>Move to {column === "Packed" ? "transit" : "delivered"} →</button>}</article>)}</section>)}</div></>;
+  const [selected, setSelected] = useState(null);
+  const current = orders.find((order) => order.id === selected);
+  const columns = [
+    ["Ready to pack", (order) => ["Confirmed", "Awaiting payment"].includes(order.status)],
+    ["Packed", (order) => order.status === "Packed"],
+    ["In transit", (order) => ["In transit", "Delivery exception"].includes(order.status)],
+    ["Delivered", (order) => order.status === "Delivered"],
+  ];
+  return <><SectionHead eyebrow="Insured fulfilment" title="Delivery & tracking" copy="Create shipment records, dispatch packages, log scans, handle exceptions, and confirm delivery." />
+    <div className="delivery-summary"><span><b>{orders.filter((order) => order.status === "Packed").length}</b>Ready to dispatch</span><span><b>{orders.filter((order) => order.status === "In transit").length}</b>In transit</span><span><b>{orders.filter((order) => order.status === "Delivery exception").length}</b>Exceptions</span><span><b>{orders.filter((order) => order.status === "Delivered").length}</b>Delivered</span></div>
+    <div className="delivery-board full">{columns.map(([column, match]) => <section key={column}><header><h2>{column}</h2><span>{orders.filter(match).length}</span></header>{orders.filter(match).map((order) => <article className={order.status === "Delivery exception" ? "exception" : ""} key={order.id}><div><b>{order.id}</b><Status value={order.status} /></div><h3>{order.customer.name}</h3><p>{order.items.map((item) => item.name).join(", ")}</p><dl><div><dt>Carrier</dt><dd>{order.tracking?.carrier}</dd></div><div><dt>Tracking</dt><dd>{order.tracking?.number}</dd></div><div><dt>ETA</dt><dd>{order.tracking?.eta === "—" ? "Not set" : fmtDate(order.tracking?.eta)}</dd></div></dl><button onClick={() => setSelected(order.id)}>Manage delivery →</button></article>)}</section>)}</div>
+    {current && <DeliveryEditor order={current} update={update} close={() => setSelected(null)} flash={flash} />}
+  </>;
+}
+
+function DeliveryEditor({ order, update, close, flash }) {
+  const [eventStatus, setEventStatus] = useState("");
+  const [eventLocation, setEventLocation] = useState("");
+  const [eventNote, setEventNote] = useState("");
+  function saveDetails(event) {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(event.currentTarget));
+    update(order.id, { tracking: { ...data, packageCount: Number(data.packageCount), insuredValue: Number(data.insuredValue), signatureRequired: data.signatureRequired === "on" } });
+    flash("Delivery details saved");
+  }
+  function addEvent() {
+    if (!eventStatus.trim()) return flash("Enter an event status");
+    update(order.id, { tracking: { events: [...(order.tracking?.events || []), { id: crypto.randomUUID(), status: eventStatus, location: eventLocation || "Carrier network", note: eventNote, date: new Date().toISOString() }] } });
+    setEventStatus(""); setEventLocation(""); setEventNote(""); flash("Tracking event added");
+  }
+  function setDeliveryStatus(status) {
+    const now = new Date().toISOString();
+    if (status === "In transit" && (!order.tracking.number || order.tracking.number === "—")) return flash("Save a tracking number before dispatch");
+    update(order.id, { status, tracking: { step: status === "Delivered" ? 4 : 3, dispatchedAt: status === "In transit" ? now : order.tracking.dispatchedAt, deliveredAt: status === "Delivered" ? now : order.tracking.deliveredAt, exception: status === "Delivery exception" ? order.tracking.exception || "Carrier exception requires review." : "", events: [...(order.tracking.events || []), { id: crypto.randomUUID(), status, location: order.tracking.carrier || "Carrier network", note: status === "Delivered" ? "Delivery confirmed." : status === "In transit" ? "Package handed to carrier." : "Delivery exception reported.", date: now }] } });
+    flash(`${order.id} marked ${status}`);
+  }
+  return <div className="admin-modal"><div className="delivery-editor"><header><div><p>{order.id}</p><h2>Manage delivery</h2><span>{order.customer.name} · {order.customer.city}, {order.customer.country}</span></div><button onClick={close}>×</button></header><form onSubmit={saveDetails}><div className="delivery-fields"><label>Carrier<select name="carrier" defaultValue={order.tracking.carrier}><option>Unassigned</option><option>FedEx</option><option>UPS</option><option>DHL Express</option><option>USPS</option><option>White glove courier</option></select></label><label>Service<input name="service" defaultValue={order.tracking.service} placeholder="Priority Overnight" /></label><label>Tracking number<input name="number" defaultValue={order.tracking.number === "—" ? "" : order.tracking.number} /></label><label>Estimated delivery<input name="eta" type="date" defaultValue={order.tracking.eta === "—" ? "" : order.tracking.eta} /></label><label>Label status<select name="labelStatus" defaultValue={order.tracking.labelStatus}><option>Not created</option><option>Created</option><option>Printed</option><option>Voided</option></select></label><label>Package count<input name="packageCount" type="number" min="1" defaultValue={order.tracking.packageCount} /></label><label>Shipment weight<input name="weight" defaultValue={order.tracking.weight} placeholder="18.4 kg" /></label><label>Insured value<input name="insuredValue" type="number" min="0" defaultValue={order.tracking.insuredValue || order.total} /></label><label className="delivery-check"><input name="signatureRequired" type="checkbox" defaultChecked={order.tracking.signatureRequired} /> Signature required</label><label className="wide">Delivery notes<textarea name="notes" defaultValue={order.tracking.notes} /></label><label className="wide">Current exception<textarea name="exception" defaultValue={order.tracking.exception} placeholder="Leave empty when delivery is proceeding normally." /></label></div><div className="delivery-editor-actions"><button type="button" onClick={() => setDeliveryStatus("Delivery exception")}>Report exception</button><button type="button" onClick={() => setDeliveryStatus("In transit")}>Mark dispatched</button><button type="button" onClick={() => setDeliveryStatus("Delivered")}>Confirm delivered</button><button className="primary-admin">Save delivery</button></div></form><section className="event-manager"><div><h3>Tracking history</h3>{[...(order.tracking.events || [])].reverse().map((item) => <article key={item.id}><i /><span><b>{item.status}</b><small>{item.location} · {new Date(item.date).toLocaleString()}</small><p>{item.note}</p></span></article>)}</div><aside><h3>Add tracking event</h3><label>Status<input value={eventStatus} onChange={(event) => setEventStatus(event.target.value)} placeholder="Arrived at sorting facility" /></label><label>Location<input value={eventLocation} onChange={(event) => setEventLocation(event.target.value)} placeholder="Memphis, TN" /></label><label>Note<textarea value={eventNote} onChange={(event) => setEventNote(event.target.value)} /></label><button onClick={addEvent}>Add event</button></aside></section></div></div>;
 }
 
 function Coupons({ coupons, save, remove, flash }) {
