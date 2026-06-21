@@ -4,7 +4,7 @@ import Link from "next/link";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { products } from "../lib/products";
-import { seedNotifications, seedOrders, seedReviews, seedUsers } from "../lib/dashboard-data";
+import { seedCoupons, seedNotifications, seedOrders, seedReviews, seedUsers } from "../lib/dashboard-data";
 
 const CommerceContext = createContext(null);
 
@@ -15,6 +15,7 @@ export function CommerceProvider({ children }) {
   const [catalog, setCatalog] = useState(products);
   const [notifications, setNotifications] = useState(seedNotifications);
   const [reviews, setReviews] = useState(seedReviews);
+  const [coupons, setCoupons] = useState(seedCoupons);
   const [session, setSession] = useState(null);
   const [ready, setReady] = useState(false);
   const [miniCart, setMiniCart] = useState(false);
@@ -44,6 +45,7 @@ export function CommerceProvider({ children }) {
     })));
     setNotifications(read("old-soul-notifications", seedNotifications));
     setReviews(read("old-soul-reviews", seedReviews));
+    setCoupons(read("old-soul-coupons", seedCoupons));
     setSession(sessionUser ? { id: sessionUser.id, name: sessionUser.name, email: sessionUser.email, role: sessionUser.role } : null);
     setReady(true);
   }, []);
@@ -54,6 +56,7 @@ export function CommerceProvider({ children }) {
   useEffect(() => { if (ready) localStorage.setItem("old-soul-catalog", JSON.stringify(catalog)); }, [catalog, ready]);
   useEffect(() => { if (ready) localStorage.setItem("old-soul-notifications", JSON.stringify(notifications)); }, [notifications, ready]);
   useEffect(() => { if (ready) localStorage.setItem("old-soul-reviews", JSON.stringify(reviews)); }, [reviews, ready]);
+  useEffect(() => { if (ready) localStorage.setItem("old-soul-coupons", JSON.stringify(coupons)); }, [coupons, ready]);
   useEffect(() => { if (ready) localStorage.setItem("old-soul-session", JSON.stringify(session)); }, [session, ready]);
   useEffect(() => () => clearTimeout(addedTimer.current), []);
 
@@ -133,8 +136,13 @@ export function CommerceProvider({ children }) {
     setOrders((current) => current.map((order) => order.id === id ? { ...order, ...patch, payment: { ...order.payment, ...(patch.payment || {}) }, tracking: { ...order.tracking, ...(patch.tracking || {}) } } : order));
   }
 
+  function saveCoupon(coupon) {
+    const normalized = { ...coupon, code: coupon.code.toUpperCase().trim(), value: Number(coupon.value), minimum: Number(coupon.minimum || 0), limit: Number(coupon.limit || 0), used: Number(coupon.used || 0), active: Boolean(coupon.active) };
+    setCoupons((current) => current.some((item) => item.id === normalized.id) ? current.map((item) => item.id === normalized.id ? normalized : item) : [normalized, ...current]);
+  }
+
   return (
-    <CommerceContext.Provider value={{ ready, items, count, subtotal, cart, addToCart, updateQuantity, removeFromCart: (id) => setCart((current) => current.filter((item) => item.id !== id)), miniCart, setMiniCart, searchOpen, setSearchOpen, added, users, orders, catalog, notifications, reviews, session, signUp, signIn, signOut: () => setSession(null), updateProfile, placeOrder, saveProduct, updateOrder, deleteProduct: (id) => setCatalog((current) => current.filter((item) => item.id !== id)), markNotification: (id) => setNotifications((current) => current.map((item) => item.id === id ? { ...item, read: true } : item)), updateReview: (id, status) => setReviews((current) => current.map((item) => item.id === id ? { ...item, status } : item)) }}>
+    <CommerceContext.Provider value={{ ready, items, count, subtotal, cart, addToCart, updateQuantity, removeFromCart: (id) => setCart((current) => current.filter((item) => item.id !== id)), miniCart, setMiniCart, searchOpen, setSearchOpen, added, users, orders, catalog, notifications, reviews, coupons, session, signUp, signIn, signOut: () => setSession(null), updateProfile, placeOrder, saveProduct, updateOrder, saveCoupon, deleteCoupon: (id) => setCoupons((current) => current.filter((item) => item.id !== id)), deleteProduct: (id) => setCatalog((current) => current.filter((item) => item.id !== id)), markNotification: (id) => setNotifications((current) => current.map((item) => item.id === id ? { ...item, read: true } : item)), updateReview: (id, status) => setReviews((current) => current.map((item) => item.id === id ? { ...item, status } : item)) }}>
       <GlobalEffects />
       {children}
     </CommerceContext.Provider>

@@ -11,7 +11,7 @@ const fmtDate = (value) => new Date(value).toLocaleDateString("en-US", { month: 
 const nav = [
   ["overview", "Overview", "⌂"], ["inventory", "Inventory", "◇"], ["orders", "Orders", "▤"],
   ["customers", "Customers", "♙"], ["payments", "Payments", "$"], ["delivery", "Delivery", "↗"],
-  ["reviews", "Reviews", "★"], ["notifications", "Notifications", "•"],
+  ["coupons", "Coupons", "%"], ["reviews", "Reviews", "★"], ["notifications", "Notifications", "•"],
 ];
 
 export function AdminDashboard() {
@@ -65,6 +65,7 @@ export function AdminDashboard() {
         {section === "customers" && <Customers orders={store.orders} search={search} />}
         {section === "payments" && <Payments orders={store.orders} update={store.updateOrder} flash={flash} />}
         {section === "delivery" && <Delivery orders={store.orders} update={store.updateOrder} flash={flash} />}
+        {section === "coupons" && <Coupons coupons={store.coupons} save={store.saveCoupon} remove={store.deleteCoupon} flash={flash} />}
         {section === "reviews" && <Reviews reviews={store.reviews} catalog={store.catalog} update={store.updateReview} flash={flash} />}
         {section === "notifications" && <Notifications items={store.notifications} mark={store.markNotification} />}
       </div>
@@ -195,6 +196,22 @@ function Payments({ orders, update, flash }) {
 
 function Delivery({ orders, update, flash }) {
   return <><SectionHead eyebrow="Insured fulfilment" title="Delivery & tracking" copy="Assign carriers, record tracking numbers, and move orders through delivery." /><div className="delivery-board">{["Packed","In transit","Delivered"].map((column) => <section key={column}><header><h2>{column}</h2><span>{orders.filter((o) => o.status === column).length}</span></header>{orders.filter((o) => o.status === column).map((order) => <article key={order.id}><div><b>{order.id}</b><Status value={order.status} /></div><h3>{order.customer.name}</h3><p>{order.items.map((i) => i.name).join(", ")}</p><small>{order.tracking?.carrier} · {order.tracking?.number}</small>{column !== "Delivered" && <button onClick={() => { const next = column === "Packed" ? "In transit" : "Delivered"; update(order.id, { status: next, tracking: { step: next === "Delivered" ? 4 : 3 } }); flash(`${order.id} moved to ${next}`); }}>Move to {column === "Packed" ? "transit" : "delivered"} →</button>}</article>)}</section>)}</div></>;
+}
+
+function Coupons({ coupons, save, remove, flash }) {
+  const [creating, setCreating] = useState(false);
+  function submit(event) {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(event.currentTarget));
+    save({ ...data, id: crypto.randomUUID(), active: true, used: 0 });
+    event.currentTarget.reset();
+    setCreating(false);
+    flash("Coupon created");
+  }
+  return <><SectionHead eyebrow={`${coupons.length} discount rules`} title="Coupons" copy="Create controlled promotions without changing product valuations." action={<button className="primary-admin" onClick={() => setCreating(!creating)}>+ New coupon</button>} />
+    {creating && <form className="coupon-form" onSubmit={submit}><label>Code<input name="code" required placeholder="SUMMER15" /></label><label>Discount type<select name="type"><option value="percent">Percentage</option><option value="fixed">Fixed amount</option></select></label><label>Value<input name="value" type="number" min="1" required /></label><label>Minimum order<input name="minimum" type="number" min="0" defaultValue="0" /></label><label>Usage limit<input name="limit" type="number" min="1" defaultValue="100" /></label><label>Expires<input name="expires" type="date" required /></label><button>Create coupon</button></form>}
+    <div className="coupon-grid">{coupons.map((coupon) => <article key={coupon.id} className={coupon.active ? "" : "inactive"}><header><span>{coupon.type === "percent" ? `${coupon.value}%` : money(coupon.value)}</span><Status value={coupon.active ? "Active" : "Inactive"} /></header><h2>{coupon.code}</h2><p>Minimum {money(coupon.minimum)} · expires {fmtDate(coupon.expires)}</p><div><span><b>{coupon.used}</b> used</span><span><b>{coupon.limit || "∞"}</b> limit</span></div><footer><button onClick={() => { save({ ...coupon, active: !coupon.active }); flash("Coupon status updated"); }}>{coupon.active ? "Deactivate" : "Activate"}</button><button onClick={() => remove(coupon.id)}>Delete</button></footer></article>)}</div>
+  </>;
 }
 
 function Reviews({ reviews, catalog, update, flash }) {
