@@ -68,7 +68,20 @@ button { color: inherit; }
 .cart-button { display: flex; gap: 10px; align-items: center; padding: 0 14px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
 .cart-button span { min-width: 27px; height: 27px; display: grid; place-items: center; color: var(--paper); background: var(--burgundy); border-radius: 50%; font: 500 9px var(--mono); }
 .menu-button { display: none; }
-.account-link { padding: 14px 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.account-menu { position: relative; }
+.user-button { position: relative; width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid transparent; border-radius: 50%; background: transparent; cursor: pointer; }
+.user-button:hover, .user-button[aria-expanded="true"] { border-color: var(--ink); background: var(--paper-deep); }
+.user-button svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; }
+.user-button > i { position: absolute; right: 4px; bottom: 4px; width: 9px; height: 9px; border: 2px solid var(--paper); border-radius: 50%; background: #4d7a55; }
+.account-popover { position: absolute; top: calc(100% + 13px); right: 0; width: 275px; overflow: hidden; border: 2px solid var(--ink); background: var(--paper); box-shadow: 7px 7px 0 var(--ink); animation: panel-in .3s var(--ease); }
+.account-popover-id { display: grid; grid-template-columns: 42px 1fr; align-items: center; gap: 11px; padding: 16px; border-bottom: 1px solid var(--line); background: var(--paper-deep); }
+.account-popover-id > span { width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid var(--ink); border-radius: 50%; font: 700 9px var(--mono); }
+.account-popover-id div, .account-popover-copy { display: grid; gap: 5px; }
+.account-popover-id b, .account-popover-copy b { font-size: 12px; }
+.account-popover-id small, .account-popover-copy small { color: #6e665b; font: 500 8px/1.45 var(--mono); text-transform: uppercase; }
+.account-popover-copy { padding: 18px 16px; border-bottom: 1px solid var(--line); }
+.account-popover > a, .account-popover > button { width: 100%; min-height: 46px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border: 0; border-bottom: 1px solid var(--line); background: transparent; text-align: left; font: 600 9px var(--mono); text-transform: uppercase; cursor: pointer; }
+.account-popover > a:hover, .account-popover > button:hover { color: var(--paper); background: var(--burgundy); }
 .cart-bump { animation: cart-bump .55s var(--ease); }
 .added-toast { position: absolute; top: calc(100% + 10px); right: 18px; width: min(390px, calc(100vw - 40px)); display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: 14px; padding: 12px 14px; border: 2px solid var(--ink); color: var(--ink); background: var(--paper-deep); box-shadow: 6px 6px 0 var(--burgundy); animation: toast-in .55s var(--ease), toast-flicker .22s steps(2) 1; }
 .toast-seal { width: 44px; height: 44px; display: grid; place-items: center; border: 2px double var(--burgundy); border-radius: 50%; color: var(--burgundy); font: 700 11px var(--display); transform: rotate(-8deg); }
@@ -363,7 +376,7 @@ select { min-height: 44px; padding: 0 36px 0 12px; border: 1px solid var(--ink);
   .quick-add { transform: none; }
   .collection-title { position: static; }
   .story-mark { width: 180px; }
-  .account-link { display: none; }
+  .account-popover { position: fixed; top: 108px; right: 16px; }
   .product-page { grid-template-columns: 1fr; }
   .product-gallery-main { position: relative; top: 0; }
   .product-gallery-main img { height: min(68svh, 620px); min-height: 300px; }
@@ -379,6 +392,8 @@ select { min-height: 44px; padding: 0 36px 0 12px; border: 1px solid var(--ink);
   .header { padding-inline: 10px; }
   .header-actions { gap: 4px; }
   .cart-button { gap: 0; padding: 0 4px; font-size: 0; }
+  .user-button { width: 38px; height: 38px; }
+  .account-popover { top: 104px; right: 12px; left: 12px; width: auto; }
   .cart-button span { font-size: 9px; }
   .menu-button { padding-inline: 5px; }
   .hero { --hero-space: 16px; height: calc(100svh - 148px); min-height: 0; }

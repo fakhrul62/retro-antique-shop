@@ -175,7 +175,8 @@ export function AnalogLogo({ time }) {
 export function SiteHeader() {
   const [time, setTime] = useState(null);
   const [menu, setMenu] = useState(false);
-  const { count, items, subtotal, miniCart, setMiniCart, searchOpen, setSearchOpen, removeFromCart, added, session } = useCommerce();
+  const [accountOpen, setAccountOpen] = useState(false);
+  const { count, items, subtotal, miniCart, setMiniCart, searchOpen, setSearchOpen, removeFromCart, added, session, signOut } = useCommerce();
   const pathname = usePathname();
   const cartButton = useRef(null);
 
@@ -184,7 +185,7 @@ export function SiteHeader() {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-  useEffect(() => { setMenu(false); setMiniCart(false); setSearchOpen(false); }, [pathname, setMiniCart, setSearchOpen]);
+  useEffect(() => { setMenu(false); setMiniCart(false); setSearchOpen(false); setAccountOpen(false); }, [pathname, setMiniCart, setSearchOpen]);
   useEffect(() => {
     document.body.style.overflow = menu || searchOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
@@ -200,7 +201,23 @@ export function SiteHeader() {
         </nav>
         <div className="header-actions">
           <button className="icon-button search-toggle" aria-label="Open search" onClick={() => setSearchOpen(true)}>⌕</button>
-          <Link className="account-link" href="/account">{session ? session.name.split(" ")[0] : "Account"}</Link>
+          <div className="account-menu">
+            <button className={`user-button ${session ? "signed-in" : ""}`} onClick={() => setAccountOpen((open) => !open)} aria-label={session ? `Open ${session.name} account menu` : "Open sign in menu"} aria-expanded={accountOpen}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.25" /><path d="M5.5 20c.35-4.15 2.52-6.25 6.5-6.25S18.15 15.85 18.5 20" /></svg>
+              {session && <i />}
+            </button>
+            {accountOpen && <div className="account-popover">
+              {session ? <>
+                <div className="account-popover-id"><span>{session.name.split(" ").map((part) => part[0]).join("").slice(0, 2)}</span><div><b>{session.name}</b><small>{session.role === "admin" ? "Administrator" : "Customer account"}</small></div></div>
+                <Link href={session.role === "admin" ? "/admin" : "/account"}>{session.role === "admin" ? "Open admin dashboard" : "Open my account"} <span>→</span></Link>
+                <button onClick={() => { signOut(); setAccountOpen(false); }}>Sign out <span>↗</span></button>
+              </> : <>
+                <div className="account-popover-copy"><b>Your private ledger</b><small>Sign in as a customer or administrator.</small></div>
+                <Link href="/sign-in">Sign in <span>→</span></Link>
+                <Link href="/sign-up">Create customer account <span>→</span></Link>
+              </>}
+            </div>}
+          </div>
           <button ref={cartButton} className={`cart-button ${added ? "cart-bump" : ""}`} onClick={() => setMiniCart(!miniCart)} aria-expanded={miniCart}>Cart <span>{String(count).padStart(2, "0")}</span></button>
           <button className="menu-button" onClick={() => setMenu(!menu)} aria-label="Toggle menu" aria-expanded={menu}>{menu ? "×" : "Menu"}</button>
         </div>
