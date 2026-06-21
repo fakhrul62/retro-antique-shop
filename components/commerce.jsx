@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { products } from "../lib/products";
+import { seedNotifications, seedOrders, seedReviews } from "../lib/dashboard-data";
 
 const CommerceContext = createContext(null);
 
@@ -11,6 +12,9 @@ export function CommerceProvider({ children }) {
   const [cart, setCart] = useState([]);
   const [users, setUsers] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [catalog, setCatalog] = useState(products);
+  const [notifications, setNotifications] = useState(seedNotifications);
+  const [reviews, setReviews] = useState(seedReviews);
   const [session, setSession] = useState(null);
   const [ready, setReady] = useState(false);
   const [miniCart, setMiniCart] = useState(false);
@@ -24,7 +28,10 @@ export function CommerceProvider({ children }) {
     };
     setCart(read("old-soul-cart", []));
     setUsers(read("old-soul-users", []));
-    setOrders(read("old-soul-orders", []));
+    setOrders(read("old-soul-orders", seedOrders));
+    setCatalog(read("old-soul-catalog", products));
+    setNotifications(read("old-soul-notifications", seedNotifications));
+    setReviews(read("old-soul-reviews", seedReviews));
     setSession(read("old-soul-session", null));
     setReady(true);
   }, []);
@@ -32,10 +39,13 @@ export function CommerceProvider({ children }) {
   useEffect(() => { if (ready) localStorage.setItem("old-soul-cart", JSON.stringify(cart)); }, [cart, ready]);
   useEffect(() => { if (ready) localStorage.setItem("old-soul-users", JSON.stringify(users)); }, [users, ready]);
   useEffect(() => { if (ready) localStorage.setItem("old-soul-orders", JSON.stringify(orders)); }, [orders, ready]);
+  useEffect(() => { if (ready) localStorage.setItem("old-soul-catalog", JSON.stringify(catalog)); }, [catalog, ready]);
+  useEffect(() => { if (ready) localStorage.setItem("old-soul-notifications", JSON.stringify(notifications)); }, [notifications, ready]);
+  useEffect(() => { if (ready) localStorage.setItem("old-soul-reviews", JSON.stringify(reviews)); }, [reviews, ready]);
   useEffect(() => { if (ready) localStorage.setItem("old-soul-session", JSON.stringify(session)); }, [session, ready]);
   useEffect(() => () => clearTimeout(addedTimer.current), []);
 
-  const items = useMemo(() => cart.map((entry) => ({ ...products.find((product) => product.id === entry.id), quantity: entry.quantity })).filter((item) => item.id), [cart]);
+  const items = useMemo(() => cart.map((entry) => ({ ...catalog.find((product) => product.id === entry.id), quantity: entry.quantity })).filter((item) => item.id), [cart, catalog]);
   const count = cart.reduce((total, item) => total + item.quantity, 0);
   const subtotal = items.reduce((total, item) => total + item.price * item.quantity, 0);
 
@@ -78,20 +88,31 @@ export function CommerceProvider({ children }) {
       id: `OS-${Date.now().toString().slice(-7)}`,
       date: new Date().toISOString(),
       customer,
-      payment,
+      payment: { ...payment, status: payment.status || "Pending", transaction: payment.transaction || "Pending" },
       items,
       subtotal,
       shipping: subtotal >= 750 ? 0 : 45,
       total: subtotal + (subtotal >= 750 ? 0 : 45),
       status: "Confirmed",
+      tracking: { carrier: "Unassigned", number: "—", eta: "—", step: 1 },
     };
     setOrders((current) => [order, ...current]);
     setCart([]);
     return order;
   }
 
+  function saveProduct(product) {
+    const normalized = { ...product, price: Number(product.price), cost: Number(product.cost), stock: Number(product.stock), insuredValue: Number(product.insuredValue || product.price), views: Number(product.views || 0), favorites: Number(product.favorites || 0), reviewCount: Number(product.reviewCount || 0), status: Number(product.stock) === 0 ? "Sold" : Number(product.stock) <= 1 ? "Low stock" : "In stock" };
+    setCatalog((current) => current.some((item) => item.id === normalized.id) ? current.map((item) => item.id === normalized.id ? normalized : item) : [normalized, ...current]);
+    return normalized;
+  }
+
+  function updateOrder(id, patch) {
+    setOrders((current) => current.map((order) => order.id === id ? { ...order, ...patch, payment: { ...order.payment, ...(patch.payment || {}) }, tracking: { ...order.tracking, ...(patch.tracking || {}) } } : order));
+  }
+
   return (
-    <CommerceContext.Provider value={{ items, count, subtotal, cart, addToCart, updateQuantity, removeFromCart: (id) => setCart((current) => current.filter((item) => item.id !== id)), miniCart, setMiniCart, searchOpen, setSearchOpen, added, users, orders, session, signUp, signIn, signOut: () => setSession(null), placeOrder }}>
+    <CommerceContext.Provider value={{ items, count, subtotal, cart, addToCart, updateQuantity, removeFromCart: (id) => setCart((current) => current.filter((item) => item.id !== id)), miniCart, setMiniCart, searchOpen, setSearchOpen, added, users, orders, catalog, notifications, reviews, session, signUp, signIn, signOut: () => setSession(null), placeOrder, saveProduct, updateOrder, deleteProduct: (id) => setCatalog((current) => current.filter((item) => item.id !== id)), markNotification: (id) => setNotifications((current) => current.map((item) => item.id === id ? { ...item, read: true } : item)), updateReview: (id, status) => setReviews((current) => current.map((item) => item.id === id ? { ...item, status } : item)) }}>
       <GlobalEffects />
       {children}
     </CommerceContext.Provider>
@@ -207,6 +228,7 @@ export function SiteFooter() {
 }
 
 function SearchOverlay({ close }) {
+  const { catalog } = useCommerce();
   const [query, setQuery] = useState("");
   const input = useRef(null);
   useEffect(() => {
@@ -215,7 +237,7 @@ function SearchOverlay({ close }) {
     window.addEventListener("keydown", escape);
     return () => window.removeEventListener("keydown", escape);
   }, [close]);
-  const results = products.filter((product) => `${product.name} ${product.category} ${product.era}`.toLowerCase().includes(query.toLowerCase()));
+  const results = catalog.filter((product) => `${product.name} ${product.category} ${product.era}`.toLowerCase().includes(query.toLowerCase()));
   return <div className="search-overlay">
     <div className="search-dialog">
       <div className="search-dialog-head"><span>Search the archive</span><button onClick={close}>Close ×</button></div>
