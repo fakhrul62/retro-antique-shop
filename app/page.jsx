@@ -13,6 +13,7 @@ export default function Home() {
   const [message, setMessage] = useState("");
   const [openJournal, setOpenJournal] = useState(null);
   const filtered = useMemo(() => products.filter((product) =>
+    product.listingStatus !== "Draft" &&
     (category === "All" || product.category === category) &&
     product.name.toLowerCase().includes(query.toLowerCase())
   ), [category, query]);
@@ -61,7 +62,7 @@ export default function Home() {
                 <Link href={`/product/${product.slug}`}><img src={product.image} alt={product.name} /></Link>
                 <AddToCartButton product={product} className="quick-add" />
               </div>
-              <div className="product-meta"><div><p>{product.era} · {product.note}</p><h3><Link href={`/product/${product.slug}`}>{product.name}</Link></h3></div><b>${product.price.toLocaleString()}</b></div>
+              <div className="product-meta"><div><p>{product.era} · {product.note}</p><h3><Link href={`/product/${product.slug}`}>{product.name}</Link></h3></div><b>{product.saleEnabled && product.salePrice ? <><del>${product.price.toLocaleString()}</del> ${product.salePrice.toLocaleString()}</> : `$${product.price.toLocaleString()}`}</b></div>
             </article>
           ))}
           {!filtered.length && <p className="empty">No objects match that search.</p>}

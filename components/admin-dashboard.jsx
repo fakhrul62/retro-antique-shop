@@ -58,8 +58,8 @@ export function AdminDashboard() {
       </header>
       <div className="admin-content">
         {section === "overview" && <Overview {...store} go={go} setSelectedOrder={setSelectedOrder} />}
-        {section === "inventory" && !selectedProduct && <Inventory catalog={store.catalog} search={search} category={category} setCategory={setCategory} select={setSelectedProduct} add={() => setAddOpen(true)} />}
-        {section === "inventory" && selectedProduct && <ProductRecord product={store.catalog.find((item) => item.id === selectedProduct)} back={() => setSelectedProduct(null)} edit={() => setAddOpen(store.catalog.find((item) => item.id === selectedProduct))} />}
+        {section === "inventory" && !selectedProduct && <Inventory catalog={store.catalog} search={search} category={category} setCategory={setCategory} select={setSelectedProduct} add={() => setAddOpen(true)} save={store.saveProduct} />}
+        {section === "inventory" && selectedProduct && <ProductRecord product={store.catalog.find((item) => item.id === selectedProduct)} back={() => setSelectedProduct(null)} edit={() => setAddOpen(store.catalog.find((item) => item.id === selectedProduct))} save={store.saveProduct} flash={flash} />}
         {section === "orders" && !selectedOrder && <Orders orders={store.orders} search={search} select={setSelectedOrder} />}
         {section === "orders" && selectedOrder && <OrderRecord order={store.orders.find((item) => item.id === selectedOrder)} update={store.updateOrder} back={() => setSelectedOrder(null)} flash={flash} />}
         {section === "customers" && <Customers orders={store.orders} search={search} />}
@@ -109,18 +109,29 @@ function Metric({ label, value, change, note }) { return <article className="met
 function CardTitle({ title, meta, action, onClick }) { return <header className="card-title"><h2>{title}</h2>{meta && <span>{meta}</span>}{action && <button onClick={onClick}>{action} →</button>}</header>; }
 function Status({ value }) { return <span className={`dash-status ${String(value).toLowerCase().replaceAll(" ", "-")}`}>{value}</span>; }
 
-function Inventory({ catalog, search, category, setCategory, select, add }) {
+function Inventory({ catalog, search, category, setCategory, select, add, save }) {
   const categories = ["All", ...new Set(catalog.map((item) => item.category))];
   const filtered = catalog.filter((item) => (category === "All" || item.category === category) && `${item.name} ${item.sku} ${item.brand}`.toLowerCase().includes(search.toLowerCase()));
   return <>
     <SectionHead eyebrow={`${catalog.length} catalog records`} title="Antique inventory" copy="Acquisition, provenance, grading, valuation, and stock in one ledger." action={<button className="primary-admin" onClick={add}>+ Add product</button>} />
     <div className="inventory-summary"><span><b>{catalog.reduce((s, p) => s + p.stock, 0)}</b>Units available</span><span><b>{money(catalog.reduce((s, p) => s + p.cost * p.stock, 0))}</b>Capital held</span><span><b>{money(catalog.reduce((s, p) => s + p.price * p.stock, 0))}</b>Retail value</span><span><b>{catalog.filter((p) => p.stock <= 1).length}</b>Need attention</span></div>
     <div className="table-tools"><div className="chip-row">{categories.map((item) => <button className={category === item ? "active" : ""} onClick={() => setCategory(item)} key={item}>{item}</button>)}</div><span>{filtered.length} records</span></div>
-    <div className="data-table inventory-table"><div className="table-row table-head"><span>Object</span><span>Category / maker</span><span>Acquired</span><span>Cost / price</span><span>Stock</span><span>Status</span><span /></div>{filtered.map((product) => <button className="table-row" key={product.id} onClick={() => select(product.id)}><span className="object-cell"><img src={product.image} alt="" /><i><b>{product.name}</b><small>{product.sku} · {product.era}</small></i></span><span><b>{product.category}</b><small>{product.brand}</small></span><span><b>{fmtDate(product.acquired)}</b><small>{product.source}</small></span><span><b>{money(product.cost)} → {money(product.price)}</b><small>{Math.round((product.price - product.cost) / product.price * 100)}% margin</small></span><span><b>{product.stock}</b><small>{product.location}</small></span><Status value={product.status} /><span className="row-arrow">→</span></button>)}</div>
+    <div className="data-table inventory-table">
+      <div className="table-row table-head"><span>Object</span><span>Category / maker</span><span>Acquired</span><span>Cost / price</span><span>Stock</span><span>Listing</span><span /></div>
+      {filtered.map((product) => <div className="table-row" role="button" tabIndex="0" key={product.id} onClick={() => select(product.id)} onKeyDown={(event) => event.key === "Enter" && select(product.id)}>
+        <span className="object-cell"><img src={product.image} alt="" /><i><b>{product.name}</b><small>{product.sku} · {product.era}</small></i></span>
+        <span><b>{product.category}</b><small>{product.brand}</small></span>
+        <span><b>{fmtDate(product.acquired)}</b><small>{product.source}</small></span>
+        <span><b>{money(product.cost)} → {money(product.saleEnabled ? product.salePrice : product.price)}</b><small>{product.saleEnabled ? `Sale · was ${money(product.price)}` : `${Math.round((product.price - product.cost) / product.price * 100)}% margin`}</small></span>
+        <span className="stock-inline"><button onClick={(event) => { event.stopPropagation(); save({ ...product, stock: Math.max(0, product.stock - 1) }); }}>−</button><b>{product.stock}</b><button onClick={(event) => { event.stopPropagation(); save({ ...product, stock: product.stock + 1 }); }}>+</button></span>
+        <span onClick={(event) => event.stopPropagation()}><select className="listing-select" value={product.listingStatus} onChange={(event) => save({ ...product, listingStatus: event.target.value })}>{["For sale","Reserved","Draft","Sold"].map((status) => <option key={status}>{status}</option>)}</select></span>
+        <span className="row-arrow">→</span>
+      </div>)}
+    </div>
   </>;
 }
 
-function ProductRecord({ product, back, edit }) {
+function ProductRecord({ product, back, edit, save, flash }) {
   if (!product) return null;
   const profit = product.price - product.cost;
   return <><button className="back-button" onClick={back}>← Back to inventory</button>
@@ -130,6 +141,7 @@ function ProductRecord({ product, back, edit }) {
       <section className="dash-card record-card"><CardTitle title="Identity & attribution" /><Details rows={[["Maker / workshop", product.maker],["Brand", product.brand],["Production date", product.era],["Country of origin", product.origin],["Materials", product.materials],["Dimensions", product.dimensions],["Weight", product.weight]]} /></section>
       <section className="dash-card record-card"><CardTitle title="Condition & grading" /><div className="grade-display"><b>{product.grade}</b><span><strong>{product.condition}</strong>Last graded {fmtDate(product.lastGraded)}</span></div><p>{product.conditionNotes}</p><Details rows={[["Graded by", product.restorer],["Authentication", product.authenticity]]} /></section>
       <section className="dash-card record-card wide"><CardTitle title="Provenance & acquisition" /><Details rows={[["Acquired from", product.source],["Acquired on", fmtDate(product.acquired)],["Documented provenance", product.provenance],["Restoration record", product.restoration]]} /></section>
+      <section className="dash-card record-card"><CardTitle title="Commerce controls" /><div className="commerce-controls"><label>Listing status<select value={product.listingStatus} onChange={(event) => { save({ ...product, listingStatus: event.target.value }); flash("Listing status updated"); }}>{["For sale","Reserved","Draft","Sold"].map((status) => <option key={status}>{status}</option>)}</select></label><label>Stock quantity<input type="number" min="0" value={product.stock} onChange={(event) => save({ ...product, stock: event.target.value })} /></label><label className="sale-check"><input type="checkbox" checked={product.saleEnabled} onChange={(event) => save({ ...product, saleEnabled: event.target.checked })} /> Sale price active</label><label>Sale price<input type="number" min="0" value={product.salePrice || ""} placeholder={product.price} onChange={(event) => save({ ...product, salePrice: event.target.value })} /></label></div></section>
       <section className="dash-card record-card"><CardTitle title="Fulfilment" /><Details rows={[["Shipping class", product.shippingClass],["Insured value", money(product.insuredValue)],["Storage", product.location]]} /></section>
       <section className="dash-card record-card"><CardTitle title="Buyer-facing notes" /><p>{product.description}</p><ul>{product.details.map((item) => <li key={item}>{item}</li>)}</ul></section>
     </div>

@@ -11,6 +11,7 @@ export function ShopPage() {
   const [category, setCategory] = useState("All");
   const [sort, setSort] = useState("featured");
   const shown = [...catalog]
+    .filter((product) => product.listingStatus !== "Draft")
     .filter((product) => category === "All" || product.category === category)
     .sort((a, b) => sort === "low" ? a.price - b.price : sort === "high" ? b.price - a.price : 0);
   return <PageShell eyebrow="The complete archive" title="Shop antiques" intro="Every object is one of one, documented honestly, and packed by hand." className="shop-page">
@@ -20,7 +21,7 @@ export function ShopPage() {
     </div>
     <div className="product-grid commerce-grid">{shown.map((product, index) => <article className="product" key={product.id}>
       <div className="product-media"><span className="product-number">0{index + 1}</span><Link href={`/product/${product.slug}`}><img src={product.image} alt={product.name} /></Link><AddToCartButton product={product} className="quick-add" /></div>
-      <div className="product-meta"><div><p>{product.era} · {product.note}</p><h3><Link href={`/product/${product.slug}`}>{product.name}</Link></h3></div><b>${product.price.toLocaleString()}</b></div>
+      <div className="product-meta"><div><p>{product.era} · {product.note}</p><h3><Link href={`/product/${product.slug}`}>{product.name}</Link></h3></div><b>{product.saleEnabled && product.salePrice ? <><del>${product.price.toLocaleString()}</del> ${product.salePrice.toLocaleString()}</> : `$${product.price.toLocaleString()}`}</b></div>
     </article>)}</div>
   </PageShell>;
 }
@@ -37,7 +38,7 @@ export function ProductDetail({ product, related = products }) {
   return <main className="product-page">
     <div className="product-gallery"><div className="product-gallery-main"><img src={product.image} alt={product.name} /><span>Archive piece</span></div></div>
     <div className="product-info">
-      <p className="eyebrow">{product.era} · {product.category}</p><h1>{product.name}</h1><p className="product-price">${product.price.toLocaleString()}</p>
+      <p className="eyebrow">{product.era} · {product.category}</p><h1>{product.name}</h1><p className="product-price">{product.saleEnabled && product.salePrice ? <><del>${product.price.toLocaleString()}</del> ${product.salePrice.toLocaleString()}</> : `$${product.price.toLocaleString()}`}</p>
       <p className="product-description">{product.description}</p>
       <ul>{product.details.map((detail) => <li key={detail}>{detail}</li>)}</ul>
       <div className="quantity-row"><div><span>Quantity</span><QuantityStepper value={quantity} onChange={setQuantity} /></div><span>Ready to dispatch</span></div>

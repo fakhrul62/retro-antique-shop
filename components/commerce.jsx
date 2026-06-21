@@ -36,7 +36,12 @@ export function CommerceProvider({ children }) {
     setCart(read("old-soul-cart", []));
     setUsers(mergedUsers);
     setOrders(read("old-soul-orders", seedOrders));
-    setCatalog(read("old-soul-catalog", products));
+    setCatalog(read("old-soul-catalog", products).map((product) => ({
+      ...product,
+      listingStatus: product.listingStatus || (product.stock === 0 ? "Sold" : "For sale"),
+      saleEnabled: Boolean(product.saleEnabled),
+      salePrice: Number(product.salePrice || 0),
+    })));
     setNotifications(read("old-soul-notifications", seedNotifications));
     setReviews(read("old-soul-reviews", seedReviews));
     setSession(sessionUser ? { id: sessionUser.id, name: sessionUser.name, email: sessionUser.email, role: sessionUser.role } : null);
@@ -52,7 +57,10 @@ export function CommerceProvider({ children }) {
   useEffect(() => { if (ready) localStorage.setItem("old-soul-session", JSON.stringify(session)); }, [session, ready]);
   useEffect(() => () => clearTimeout(addedTimer.current), []);
 
-  const items = useMemo(() => cart.map((entry) => ({ ...catalog.find((product) => product.id === entry.id), quantity: entry.quantity })).filter((item) => item.id), [cart, catalog]);
+  const items = useMemo(() => cart.map((entry) => {
+    const product = catalog.find((item) => item.id === entry.id);
+    return product ? { ...product, price: product.saleEnabled && product.salePrice > 0 ? product.salePrice : product.price, quantity: entry.quantity } : null;
+  }).filter(Boolean), [cart, catalog]);
   const count = cart.reduce((total, item) => total + item.quantity, 0);
   const subtotal = items.reduce((total, item) => total + item.price * item.quantity, 0);
 
@@ -115,7 +123,8 @@ export function CommerceProvider({ children }) {
   }
 
   function saveProduct(product) {
-    const normalized = { ...product, price: Number(product.price), cost: Number(product.cost), stock: Number(product.stock), insuredValue: Number(product.insuredValue || product.price), views: Number(product.views || 0), favorites: Number(product.favorites || 0), reviewCount: Number(product.reviewCount || 0), status: Number(product.stock) === 0 ? "Sold" : Number(product.stock) <= 1 ? "Low stock" : "In stock" };
+    const stock = Number(product.stock);
+    const normalized = { ...product, price: Number(product.price), cost: Number(product.cost), stock, salePrice: Number(product.salePrice || 0), saleEnabled: Boolean(product.saleEnabled), listingStatus: product.listingStatus || (stock === 0 ? "Sold" : "For sale"), insuredValue: Number(product.insuredValue || product.price), views: Number(product.views || 0), favorites: Number(product.favorites || 0), reviewCount: Number(product.reviewCount || 0), status: stock === 0 ? "Sold" : stock <= 1 ? "Low stock" : "In stock" };
     setCatalog((current) => current.some((item) => item.id === normalized.id) ? current.map((item) => item.id === normalized.id ? normalized : item) : [normalized, ...current]);
     return normalized;
   }
@@ -283,7 +292,8 @@ function SearchOverlay({ close }) {
 export function AddToCartButton({ product, quantity = 1, className = "" }) {
   const { addToCart, added } = useCommerce();
   const isAdded = added?.product.id === product.id;
-  return <button className={`commerce-button ${className} ${isAdded ? "is-added" : ""}`} onClick={() => addToCart(product, quantity)}>{isAdded ? "Added to cart" : "Add to cart"} <span>{isAdded ? "✓" : "+"}</span></button>;
+  const unavailable = product.stock === 0 || (product.listingStatus && product.listingStatus !== "For sale");
+  return <button disabled={unavailable} className={`commerce-button ${className} ${isAdded ? "is-added" : ""}`} onClick={() => addToCart(product, quantity)}>{unavailable ? product.listingStatus || "Unavailable" : isAdded ? "Added to cart" : "Add to cart"} <span>{isAdded ? "✓" : unavailable ? "—" : "+"}</span></button>;
 }
 
 export function PageShell({ eyebrow, title, intro, children, className = "" }) {
