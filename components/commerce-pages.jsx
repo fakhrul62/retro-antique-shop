@@ -32,7 +32,7 @@ export function ProductDetail({ product }) {
       <p className="eyebrow">{product.era} · {product.category}</p><h1>{product.name}</h1><p className="product-price">${product.price.toLocaleString()}</p>
       <p className="product-description">{product.description}</p>
       <ul>{product.details.map((detail) => <li key={detail}>{detail}</li>)}</ul>
-      <div className="quantity-row"><label>Quantity <select value={quantity} onChange={(event) => setQuantity(Number(event.target.value))}>{Array.from({ length: product.stock }, (_, index) => <option value={index + 1} key={index + 1}>{index + 1}</option>)}</select></label><span>Ready to dispatch</span></div>
+      <div className="quantity-row"><div><span>Quantity</span><QuantityStepper value={quantity} onChange={setQuantity} /></div><span>Ready to dispatch</span></div>
       <AddToCartButton product={product} quantity={quantity} className="product-add" />
       <div className="service-notes"><div><b>Authenticity</b><p>Research notes and condition report included.</p></div><div><b>Delivery</b><p>Insured shipping, free above $750.</p></div><div><b>Returns</b><p>14-day inspection period after delivery.</p></div></div>
     </div>
@@ -45,10 +45,18 @@ export function CartPage() {
   const shipping = subtotal >= 750 ? 0 : 45;
   return <PageShell eyebrow="Your selections" title="Shopping cart" intro={`${items.length} ${items.length === 1 ? "object" : "objects"} reserved in this browser.`} className="cart-page">
     {items.length ? <div className="cart-layout">
-      <div className="cart-lines">{items.map((item) => <article key={item.id}><Link href={`/product/${item.slug}`}><img src={item.image} alt={item.name} /></Link><div><p>{item.era}</p><h2><Link href={`/product/${item.slug}`}>{item.name}</Link></h2><span>${item.price.toLocaleString()}</span><label>Quantity <select value={item.quantity} onChange={(event) => updateQuantity(item.id, Number(event.target.value))}>{Array.from({ length: Math.max(item.stock, item.quantity) }, (_, index) => <option value={index + 1} key={index + 1}>{index + 1}</option>)}</select></label><button onClick={() => removeFromCart(item.id)}>Remove</button></div></article>)}</div>
+      <div className="cart-lines">{items.map((item) => <article key={item.id}><Link href={`/product/${item.slug}`}><img src={item.image} alt={item.name} /></Link><div><p>{item.era}</p><h2><Link href={`/product/${item.slug}`}>{item.name}</Link></h2><span>${item.price.toLocaleString()}</span><div className="cart-quantity"><span>Quantity</span><QuantityStepper value={item.quantity} onChange={(quantity) => updateQuantity(item.id, quantity)} /></div><button className="remove-item" onClick={() => removeFromCart(item.id)}>Remove</button></div></article>)}</div>
       <OrderSummary subtotal={subtotal} shipping={shipping} action={<Link href="/checkout">Proceed to checkout →</Link>} />
     </div> : <EmptyCart />}
   </PageShell>;
+}
+
+function QuantityStepper({ value, onChange }) {
+  return <div className="quantity-stepper" aria-label="Quantity">
+    <button type="button" onClick={() => onChange(Math.max(1, value - 1))} disabled={value <= 1} aria-label="Decrease quantity">−</button>
+    <output aria-live="polite">{value}</output>
+    <button type="button" onClick={() => onChange(value + 1)} aria-label="Increase quantity">+</button>
+  </div>;
 }
 
 function EmptyCart() {
