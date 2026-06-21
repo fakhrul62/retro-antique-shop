@@ -117,22 +117,30 @@ export function AuthPage({ mode }) {
   const [error, setError] = useState("");
   const router = useRouter();
   const isSignUp = mode === "signup";
+  function complete(result) {
+    if (result.error) return setError(result.error);
+    router.push(result.user.role === "admin" ? "/admin" : "/account");
+  }
   function submit(event) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const result = isSignUp
       ? signUp({ name: data.get("name"), email: data.get("email"), password: data.get("password") })
       : signIn(data.get("email"), data.get("password"));
-    if (result.error) return setError(result.error);
-    router.push("/account");
+    complete(result);
   }
-  if (session) return <PageShell eyebrow="Account" title={`Welcome, ${session.name}`}><div className="auth-card"><p>You are already signed in.</p><Link href="/account">View account →</Link></div></PageShell>;
+  function developmentLogin(role) {
+    setError("");
+    complete(signIn(role === "admin" ? "admin@oldsoul.com" : "eleanor@example.com", role === "admin" ? "admin123" : "collector"));
+  }
+  if (session) return <PageShell eyebrow="Account" title={`Welcome, ${session.name}`}><div className="auth-card"><p>You are signed in as {session.role === "admin" ? "an administrator" : "a customer"}.</p><Link href={session.role === "admin" ? "/admin" : "/account"}>Continue →</Link></div></PageShell>;
   return <PageShell eyebrow="Private client ledger" title={isSignUp ? "Create account" : "Sign in"} intro="Save your details and keep a record of your acquisitions." className="auth-page">
     <form className="auth-card" onSubmit={submit}>
       {isSignUp && <label>Full name<input name="name" required autoComplete="name" /></label>}
       <label>Email address<input name="email" type="email" required autoComplete="email" /></label>
       <label>Password<input name="password" type="password" required minLength="6" autoComplete={isSignUp ? "new-password" : "current-password"} /></label>
       {error && <p className="form-error">{error}</p>}<button>{isSignUp ? "Create account" : "Sign in"} →</button>
+      {!isSignUp && <div className="development-logins"><span>Development access</span><button type="button" onClick={() => developmentLogin("customer")}><b>Login as customer</b><small>eleanor@example.com</small></button><button type="button" onClick={() => developmentLogin("admin")}><b>Login as admin</b><small>admin@oldsoul.com</small></button></div>}
       <p>{isSignUp ? "Already registered?" : "New to Old Soul?"} <Link href={isSignUp ? "/sign-in" : "/sign-up"}>{isSignUp ? "Sign in" : "Create an account"}</Link></p>
     </form>
   </PageShell>;

@@ -336,6 +336,12 @@ select { min-height: 44px; padding: 0 36px 0 12px; border: 1px solid var(--ink);
 .auth-card button { min-height: 56px; border: 2px solid var(--ink); color: var(--paper); background: var(--ink); font: 600 11px var(--mono); text-transform: uppercase; cursor: pointer; }
 .auth-card > p { margin: 0; font-size: 13px; }
 .auth-card > p a { border-bottom: 1px solid; }
+.development-logins { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; padding-top: 20px; border-top: 1px solid var(--line); }
+.development-logins > span { grid-column: 1/-1; font: 600 8px var(--mono); letter-spacing: .09em; text-transform: uppercase; }
+.auth-card .development-logins button { min-height: 64px; display: grid; align-content: center; justify-items: start; gap: 6px; padding: 10px 13px; border: 1px solid var(--ink); color: var(--ink); background: var(--paper); text-align: left; text-transform: none; }
+.auth-card .development-logins button:hover { color: var(--paper); background: var(--burgundy); }
+.development-logins b { font-size: 11px; text-transform: uppercase; }
+.development-logins small { font: 400 7px var(--mono); }
 .account-gate { display: grid; grid-template-columns: 1fr 1fr; width: min(650px, 100%); margin: 0 auto; border: 2px solid var(--ink); box-shadow: 7px 7px 0 var(--ink); }
 .account-gate a { min-height: 70px; display: grid; place-items: center; font: 600 11px var(--mono); text-transform: uppercase; }
 .account-gate a:last-child { color: var(--paper); background: var(--ink); }
@@ -447,6 +453,7 @@ select { min-height: 44px; padding: 0 36px 0 12px; border: 1px solid var(--ink);
   .form-grid .wide { grid-column: auto; }
   .checkout-form fieldset { padding: 18px; }
   .account-gate { grid-template-columns: 1fr; }
+  .development-logins { grid-template-columns: 1fr; }
   .order-card { grid-template-columns: 1fr; }
   .order-card > div:last-child { text-align: left; }
   .success-ticket > div { flex-direction: column; }
