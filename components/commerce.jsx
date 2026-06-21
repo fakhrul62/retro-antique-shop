@@ -16,6 +16,7 @@ export function CommerceProvider({ children }) {
   const [miniCart, setMiniCart] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [added, setAdded] = useState(null);
+  const addedTimer = useRef(null);
 
   useEffect(() => {
     const read = (key, fallback) => {
@@ -32,28 +33,29 @@ export function CommerceProvider({ children }) {
   useEffect(() => { if (ready) localStorage.setItem("old-soul-users", JSON.stringify(users)); }, [users, ready]);
   useEffect(() => { if (ready) localStorage.setItem("old-soul-orders", JSON.stringify(orders)); }, [orders, ready]);
   useEffect(() => { if (ready) localStorage.setItem("old-soul-session", JSON.stringify(session)); }, [session, ready]);
+  useEffect(() => () => clearTimeout(addedTimer.current), []);
 
   const items = useMemo(() => cart.map((entry) => ({ ...products.find((product) => product.id === entry.id), quantity: entry.quantity })).filter((item) => item.id), [cart]);
   const count = cart.reduce((total, item) => total + item.quantity, 0);
   const subtotal = items.reduce((total, item) => total + item.price * item.quantity, 0);
 
   function addToCart(product, quantity = 1) {
+    const existing = cart.find((item) => item.id === product.id);
+    const nextQuantity = (existing?.quantity || 0) + quantity;
     setCart((current) => {
       const found = current.find((item) => item.id === product.id);
       return found
-        ? current.map((item) => item.id === product.id ? { ...item, quantity: Math.min(item.quantity + quantity, product.stock) } : item)
-        : [...current, { id: product.id, quantity: Math.min(quantity, product.stock) }];
+        ? current.map((item) => item.id === product.id ? { ...item, quantity: nextQuantity } : item)
+        : [...current, { id: product.id, quantity }];
     });
-    setAdded(product);
-    setMiniCart(true);
-    clearTimeout(addToCart.timer);
-    addToCart.timer = setTimeout(() => setAdded(null), 1500);
+    setAdded({ product, quantity: nextQuantity });
+    clearTimeout(addedTimer.current);
+    addedTimer.current = setTimeout(() => setAdded(null), 2200);
   }
 
   function updateQuantity(id, quantity) {
     if (quantity < 1) return setCart((current) => current.filter((item) => item.id !== id));
-    const product = products.find((item) => item.id === id);
-    setCart((current) => current.map((item) => item.id === id ? { ...item, quantity: Math.min(quantity, product.stock) } : item));
+    setCart((current) => current.map((item) => item.id === id ? { ...item, quantity } : item));
   }
 
   function signUp({ name, email, password }) {
@@ -105,16 +107,21 @@ function GlobalEffects() {
     const observer = new IntersectionObserver((entries) => entries.forEach((entry) => entry.isIntersecting && entry.target.classList.add("revealed")), { threshold: 0.08 });
     document.querySelectorAll(".reveal").forEach((element) => observer.observe(element));
     const pointer = cursor.current;
+    let hideTimer;
     const move = (event) => {
       pointer.style.transform = `translate3d(${event.clientX}px,${event.clientY}px,0)`;
-      const target = event.target.closest("a, button, .product-media, .journal-media, .story-mark");
-      pointer.classList.toggle("active", Boolean(target));
-      pointer.querySelector("span").textContent = target?.dataset.cursor || (target ? "GO" : "");
+      pointer.classList.add("moving");
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => pointer.classList.remove("moving"), 260);
     };
     if (matchMedia("(pointer:fine)").matches) window.addEventListener("pointermove", move);
-    return () => { observer.disconnect(); window.removeEventListener("pointermove", move); };
+    return () => {
+      observer.disconnect();
+      clearTimeout(hideTimer);
+      window.removeEventListener("pointermove", move);
+    };
   }, [pathname]);
-  return <div className="retro-cursor" ref={cursor}><span /></div>;
+  return <div className="retro-cursor" ref={cursor} aria-hidden="true"><span className="cursor-chain" /><span className="cursor-watch"><i /></span></div>;
 }
 
 export function AnalogLogo({ time }) {
@@ -163,7 +170,11 @@ export function SiteHeader() {
           <button ref={cartButton} className={`cart-button ${added ? "cart-bump" : ""}`} onClick={() => setMiniCart(!miniCart)} aria-expanded={miniCart}>Cart <span>{String(count).padStart(2, "0")}</span></button>
           <button className="menu-button" onClick={() => setMenu(!menu)} aria-label="Toggle menu" aria-expanded={menu}>{menu ? "×" : "Menu"}</button>
         </div>
-        {added && <div className="added-toast" role="status"><span>Added</span><b>{added.name}</b><i>→</i></div>}
+        {added && <div className="added-toast" role="status">
+          <span className="toast-seal">OS</span>
+          <span className="toast-copy"><small>Added to cart</small><b>{added.product.name}</b></span>
+          <span className="toast-quantity">Qty {added.quantity}</span>
+        </div>}
         {miniCart && (
           <aside className="mini-cart" aria-label="Shopping cart">
             <div className="mini-cart-head"><span>Cart / {count}</span><button onClick={() => setMiniCart(false)}>Close ×</button></div>
@@ -218,8 +229,9 @@ function SearchOverlay({ close }) {
 }
 
 export function AddToCartButton({ product, quantity = 1, className = "" }) {
-  const { addToCart } = useCommerce();
-  return <button className={`commerce-button ${className}`} onClick={() => addToCart(product, quantity)}>Add to cart <span>+</span></button>;
+  const { addToCart, added } = useCommerce();
+  const isAdded = added?.product.id === product.id;
+  return <button className={`commerce-button ${className} ${isAdded ? "is-added" : ""}`} onClick={() => addToCart(product, quantity)}>{isAdded ? "Added to cart" : "Add to cart"} <span>{isAdded ? "✓" : "+"}</span></button>;
 }
 
 export function PageShell({ eyebrow, title, intro, children, className = "" }) {

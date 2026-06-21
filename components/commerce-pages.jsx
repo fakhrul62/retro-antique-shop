@@ -27,12 +27,12 @@ export function ShopPage() {
 export function ProductDetail({ product }) {
   const [quantity, setQuantity] = useState(1);
   return <main className="product-page">
-    <div className="product-gallery"><div className="product-gallery-main"><img src={product.image} alt={product.name} /><span>One of one</span></div></div>
+    <div className="product-gallery"><div className="product-gallery-main"><img src={product.image} alt={product.name} /><span>Archive piece</span></div></div>
     <div className="product-info">
       <p className="eyebrow">{product.era} · {product.category}</p><h1>{product.name}</h1><p className="product-price">${product.price.toLocaleString()}</p>
       <p className="product-description">{product.description}</p>
       <ul>{product.details.map((detail) => <li key={detail}>{detail}</li>)}</ul>
-      <div className="quantity-row"><label>Quantity <select value={quantity} onChange={(event) => setQuantity(Number(event.target.value))}><option value="1">1</option></select></label><span>Only one available</span></div>
+      <div className="quantity-row"><label>Quantity <select value={quantity} onChange={(event) => setQuantity(Number(event.target.value))}>{Array.from({ length: product.stock }, (_, index) => <option value={index + 1} key={index + 1}>{index + 1}</option>)}</select></label><span>Ready to dispatch</span></div>
       <AddToCartButton product={product} quantity={quantity} className="product-add" />
       <div className="service-notes"><div><b>Authenticity</b><p>Research notes and condition report included.</p></div><div><b>Delivery</b><p>Insured shipping, free above $750.</p></div><div><b>Returns</b><p>14-day inspection period after delivery.</p></div></div>
     </div>
@@ -45,7 +45,7 @@ export function CartPage() {
   const shipping = subtotal >= 750 ? 0 : 45;
   return <PageShell eyebrow="Your selections" title="Shopping cart" intro={`${items.length} ${items.length === 1 ? "object" : "objects"} reserved in this browser.`} className="cart-page">
     {items.length ? <div className="cart-layout">
-      <div className="cart-lines">{items.map((item) => <article key={item.id}><Link href={`/product/${item.slug}`}><img src={item.image} alt={item.name} /></Link><div><p>{item.era}</p><h2><Link href={`/product/${item.slug}`}>{item.name}</Link></h2><span>${item.price.toLocaleString()}</span><label>Quantity <select value={item.quantity} onChange={(event) => updateQuantity(item.id, Number(event.target.value))}><option value="1">1</option></select></label><button onClick={() => removeFromCart(item.id)}>Remove</button></div></article>)}</div>
+      <div className="cart-lines">{items.map((item) => <article key={item.id}><Link href={`/product/${item.slug}`}><img src={item.image} alt={item.name} /></Link><div><p>{item.era}</p><h2><Link href={`/product/${item.slug}`}>{item.name}</Link></h2><span>${item.price.toLocaleString()}</span><label>Quantity <select value={item.quantity} onChange={(event) => updateQuantity(item.id, Number(event.target.value))}>{Array.from({ length: Math.max(item.stock, item.quantity) }, (_, index) => <option value={index + 1} key={index + 1}>{index + 1}</option>)}</select></label><button onClick={() => removeFromCart(item.id)}>Remove</button></div></article>)}</div>
       <OrderSummary subtotal={subtotal} shipping={shipping} action={<Link href="/checkout">Proceed to checkout →</Link>} />
     </div> : <EmptyCart />}
   </PageShell>;
