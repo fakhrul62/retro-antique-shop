@@ -37,7 +37,19 @@ export function CommerceProvider({ children }) {
     const sessionUser = storedSession && mergedUsers.find((user) => user.id === storedSession.id || user.email.toLowerCase() === storedSession.email?.toLowerCase());
     setCart(read("old-soul-cart", []));
     setUsers(mergedUsers);
-    setOrders(read("old-soul-orders", seedOrders));
+    setOrders(read("old-soul-orders", seedOrders).map((order) => ({
+      ...order,
+      fulfillment: {
+        conditionVerified: ["Packed", "In transit", "Delivered"].includes(order.status),
+        accessoriesChecked: ["Packed", "In transit", "Delivered"].includes(order.status),
+        protectiveWrap: ["Packed", "In transit", "Delivered"].includes(order.status),
+        crateSealed: ["Packed", "In transit", "Delivered"].includes(order.status),
+        insured: ["Packed", "In transit", "Delivered"].includes(order.status),
+        packedBy: ["Packed", "In transit", "Delivered"].includes(order.status) ? "Fakhrul M." : "",
+        packedAt: ["Packed", "In transit", "Delivered"].includes(order.status) ? order.date : "",
+        ...order.fulfillment,
+      },
+    })));
     setCatalog(read("old-soul-catalog", products).map((product) => ({
       ...product,
       listingStatus: product.listingStatus || (product.stock === 0 ? "Sold" : "For sale"),
@@ -127,6 +139,7 @@ export function CommerceProvider({ children }) {
       total: subtotal - discount + shipping,
       status: "Confirmed",
       tracking: { carrier: "Unassigned", number: "—", eta: "—", step: 1 },
+      fulfillment: { conditionVerified: false, accessoriesChecked: false, protectiveWrap: false, crateSealed: false, insured: false, packedBy: "", packedAt: "" },
     };
     setOrders((current) => [order, ...current]);
     if (appliedCoupon) setCoupons((current) => current.map((coupon) => coupon.id === appliedCoupon.id ? { ...coupon, used: coupon.used + 1 } : coupon));
@@ -143,7 +156,7 @@ export function CommerceProvider({ children }) {
   }
 
   function updateOrder(id, patch) {
-    setOrders((current) => current.map((order) => order.id === id ? { ...order, ...patch, payment: { ...order.payment, ...(patch.payment || {}) }, tracking: { ...order.tracking, ...(patch.tracking || {}) } } : order));
+    setOrders((current) => current.map((order) => order.id === id ? { ...order, ...patch, payment: { ...order.payment, ...(patch.payment || {}) }, tracking: { ...order.tracking, ...(patch.tracking || {}) }, fulfillment: { ...order.fulfillment, ...(patch.fulfillment || {}) } } : order));
   }
 
   function saveCoupon(coupon) {
